@@ -148,10 +148,13 @@ async function initDB() {
     }
   }
 
-  // Seed default admin
+  // Seed default admin (contraseña desde variable de entorno, con fallback solo para desarrollo local)
   const bcrypt = require('bcryptjs');
-  const defaultAdminEmail = 'admin@onfire.com';
-  const defaultAdminPass = bcrypt.hashSync('onfire2026', 10);
+  const defaultAdminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@onfire.com';
+  const defaultAdminPass = bcrypt.hashSync(process.env.DEFAULT_ADMIN_PASSWORD || 'onfire2026', 10);
+  if (!process.env.DEFAULT_ADMIN_PASSWORD) {
+    console.warn('⚠️  DEFAULT_ADMIN_PASSWORD no definida — usando contraseña por defecto (cámbiala en producción).');
+  }
   if (isProd) {
     await pgPool.query('INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash', ['Admin', defaultAdminEmail, defaultAdminPass]);
   } else {
