@@ -400,69 +400,35 @@ function renderFaqs() {
 }
 
 /* ============================================================
-   PURCHASE MODAL
+   MODAL DE APARTADO
+   Al apartar guardamos la reserva (compra segura, status pending)
+   y luego redirigimos a WhatsApp para cerrar el pago.
 ============================================================ */
-async function openReserveModal(id) {
-  const ticket = CONFIG.tickets.find(t => t.id === id);
-  if (!ticket) return;
-
-  const currentPhase = getCurrentPhase();
-  const price = ticket.prices[currentPhase.id] || 0;
-
-  // 1. Fire increment API (background)
-  // We don't necessarily need to await it to redirect, but we want it to happen
-  fetch(`${API_URL}/api/config/click/${id}`, { method: 'POST' }).catch(err => console.error('Click sync error:', err));
-
-  // 2. Update local state for immediate feedback
-  if (state[id]) {
-    state[id].displayLeft = Math.max(0, state[id].displayLeft - 1);
-    // Note: soldCount in render is (fakeStart + purchasedCount)
-    // So we should also update the local CONFIG.tickets to match what the user will see
-    const tIdx = CONFIG.tickets.findIndex(tk => tk.id === id);
-    if (tIdx !== -1) {
-      CONFIG.tickets[tIdx].fakeStart += 1;
-      // Check auto-expansion
-      const totalSold = CONFIG.tickets[tIdx].fakeStart + (CONFIG.tickets[tIdx].purchasedCount || 0);
-      if (totalSold >= CONFIG.tickets[tIdx].fakeTotal) {
-        CONFIG.tickets[tIdx].fakeTotal += 50;
-      }
-    }
-    renderAllCards();
-  }
-
-  // 3. Redirect to WhatsApp
-  const info = CONFIG.event_info;
-  const waNumber = info.whatsapp.replace(/\D/g, '');
-  const message = encodeURIComponent(`Hola, estoy interesado en comprar un boleto para ${ticket.label} ($${price}).`);
-  const waUrl = `https://wa.me/${waNumber}?text=${message}`;
-
-  window.open(waUrl, '_blank');
+function openReserveModal(id) {
+  openModal(id);
 }
 
-// The following functions related to the modal are now effectively unused
-// as openReserveModal redirects directly to WhatsApp.
-// They are kept for cleanliness as per the instruction, but their UI calls
-// (e.g., from renderAllCards) have been updated to openReserveModal.
-
 function openModal(key) {
-  if (state[key].soldOut) return;
+  if (!state[key] || state[key].soldOut) return;
 
   selectedTicket = key;
   currentPhaseOb = getCurrentPhase();
 
   const t = CONFIG.tickets.find(tk => tk.id === key);
+  if (!t) return;
   const price = t.prices[currentPhaseOb.id] || 0;
 
-  document.getElementById('modal-title').textContent = `Apartar Boleto — ${t.label}`;
-  document.getElementById('modal-emoji').textContent = t.emoji;
-  document.getElementById('modal-category').textContent = t.label;
+  document.getElementById('modal-title').textContent = t.label;
   document.getElementById('modal-price-display').textContent = `$${price}`;
 
   document.getElementById('modal-form').style.display = 'block';
   document.getElementById('modal-success').style.display = 'none';
   document.getElementById('input-instagram').value = '';
   document.getElementById('input-whatsapp').value = '';
-  document.getElementById('input-qty').value = '1';
+
+  const btn = document.getElementById('btn-confirm');
+  btn.disabled = false;
+  btn.textContent = 'Apartar mi lugar';
 
   document.getElementById('modal-overlay').classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -480,58 +446,70 @@ function closeModalOutside(e) {
   if (e.target === document.getElementById('modal-overlay')) closeModal();
 }
 
-async function confirmPurchase() {
-  const instagram = document.getElementById('input-instagram').value.replace(/^@/, '').trim();
-  const whatsapp = document.getElementById('input-whatsapp').value.trim();
-  const qty = 1; // Always 1
-  const btn = document.getElementById('btn-confirm');
+function flagInvalid(el) {
+  el.style.borderColor = 'var(--danger)';
+  el.style.boxShadow = '0 0 0 3px rgba(255,59,48,0.25)';
+  setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2000);
+}
 
-  if (!instagram) {
-    const el = document.getElementById('input-instagram');
-    el.style.borderColor = 'var(--danger)';
-    el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.25)';
-    setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2000);
-    return;
-  }
+async function confirmPurchase() {
+  const igEl = document.getElementById('input-instagram');
+  const waEl = document.getElementById('input-whatsapp');
+  const instagram = igEl.value.replace(/^@/, '').trim();
+  const whatsapp = waEl.value.trim();
+  const qty = 1;
+  const btn = document.getElementById('btn-confirm');
+  const key = selectedTicket;
+
+  if (!instagram) { flagInvalid(igEl); return; }
+  if (!whatsapp || whatsapp.replace(/\D/g, '').length < 8) { flagInvalid(waEl); return; }
+
+  const t = CONFIG.tickets.find(tk => tk.id === key);
+  const price = t ? (t.prices[getCurrentPhase().id] || 0) : 0;
 
   btn.disabled = true;
-  btn.textContent = '⏳ Guardando...';
+  btn.textContent = 'Guardando...';
 
   try {
     const res = await fetch(`${API_URL}/api/reservations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticket_type: selectedTicket, instagram, whatsapp, quantity: qty }),
+      body: JSON.stringify({ ticket_type: key, instagram, whatsapp, quantity: qty }),
     });
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error de servidor');
 
-    // Update local stock display
-    const key = selectedTicket;
-    if (key && state[key] && !state[key].soldOut) {
-      state[key].realLeft = Math.max(0, state[key].realLeft - qty);
-      state[key].displayLeft = Math.max(0, state[key].displayLeft - qty);
-      if (state[key].realLeft <= 0 || state[key].displayLeft <= 0) {
-        state[key].soldOut = true;
-        renderAllCards();
-      }
+    // Reserva guardada → aumenta el contador de vendidos (fakeStart base + reservas reales)
+    const tIdx = CONFIG.tickets.findIndex(tk => tk.id === key);
+    if (tIdx !== -1) {
+      CONFIG.tickets[tIdx].purchasedCount = (CONFIG.tickets[tIdx].purchasedCount || 0) + 1;
     }
+    if (state[key]) {
+      state[key].realLeft = Math.max(0, state[key].realLeft - qty);
+      if (state[key].realLeft <= 0) state[key].soldOut = true;
+    }
+    renderAllCards();
 
-    // Show success
+    // Éxito
     document.getElementById('modal-form').style.display = 'none';
     document.getElementById('modal-success').style.display = 'block';
 
-    // Clear inputs for next time
-    document.getElementById('input-instagram').value = '';
-    document.getElementById('input-whatsapp').value = '';
+    // Redirigir a WhatsApp para cerrar el pago
+    const waNumber = (CONFIG.event_info.whatsapp || '').replace(/\D/g, '');
+    if (waNumber) {
+      const msg = encodeURIComponent(
+        `Hola, aparté un boleto ${t ? t.label : ''} ($${price}). Mi Instagram: @${instagram}. Quiero completar mi pago.`
+      );
+      window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+    }
 
-    setTimeout(() => closeModal(), 5000); // Give more time to read the success msg
+    setTimeout(() => closeModal(), 4000);
 
   } catch (err) {
-    alert('Hubo un error al guardar tu reserva. Por favor intenta de nuevo.\n' + err.message);
+    alert('Hubo un error al apartar tu lugar. Por favor intenta de nuevo.\n' + err.message);
     btn.disabled = false;
-    btn.textContent = '✅ APARTAR MI LUGAR';
+    btn.textContent = 'Apartar mi lugar';
   }
 }
 

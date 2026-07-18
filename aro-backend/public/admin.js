@@ -546,6 +546,67 @@ function renderReservationsTable() {
 }
 
 // ============================================================
+// RESERVATION ACTIONS (status / notas / borrar)
+// ============================================================
+async function updateReservationStatus(id, sel) {
+    const status = sel.value;
+    try {
+        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
+            method: 'PATCH',
+            headers: apiHeaders(),
+            body: JSON.stringify({ status })
+        });
+        if (res.status === 401) return logout();
+        if (!res.ok) throw new Error();
+
+        sel.className = `status-select status-${status}`;
+        const r = currentReservations.find(x => x.id === id);
+        if (r) r.status = status;
+        if (document.getElementById('view-data').classList.contains('active')) renderDashboardStats();
+        showToast('Estado actualizado');
+    } catch (err) {
+        showToast('Error al actualizar estado', 'error');
+    }
+}
+
+async function updateReservationNotes(id, notes) {
+    try {
+        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
+            method: 'PATCH',
+            headers: apiHeaders(),
+            body: JSON.stringify({ notes })
+        });
+        if (res.status === 401) return logout();
+        if (!res.ok) throw new Error();
+
+        const r = currentReservations.find(x => x.id === id);
+        if (r) r.notes = notes;
+        showToast('Nota guardada');
+    } catch (err) {
+        showToast('Error al guardar nota', 'error');
+    }
+}
+
+async function deleteReservation(id) {
+    if (!confirm('¿Eliminar esta reserva? Esta acción no se puede deshacer.')) return;
+    try {
+        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
+            method: 'DELETE',
+            headers: apiHeaders()
+        });
+        if (res.status === 401) return logout();
+        if (!res.ok) throw new Error();
+
+        currentReservations = currentReservations.filter(x => x.id !== id);
+        renderReservationsTable();
+        if (document.getElementById('view-data').classList.contains('active')) renderDashboardStats();
+        showToast('Reserva eliminada');
+    } catch (err) {
+        showToast('Error al eliminar reserva', 'error');
+    }
+}
+
+// ============================================================
 // AUTHENTICATION
 // ============================================================
 async function handleLogin() {

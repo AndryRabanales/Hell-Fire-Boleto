@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
             const counts = await query('SELECT ticket_type, COUNT(*) as count FROM reservations GROUP BY ticket_type');
             const countsMap = {};
             counts.forEach(c => { countsMap[c.ticket_type] = parseInt(c.count); });
-            const purchasedCount = countsMap[ticketInfo.id] || 0;
+            const purchasedCount = countsMap[ticketInfo.label] || 0;
 
             const soldCount = (ticketInfo.fakeStart || 0) + purchasedCount;
             if (soldCount >= (ticketInfo.fakeTotal || 0)) {

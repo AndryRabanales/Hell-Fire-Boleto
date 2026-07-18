@@ -1,5 +1,5 @@
 const express = require('express');
-const { query, execute } = require('../db');
+const { query, getRow, execute } = require('../db');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -17,9 +17,10 @@ router.get('/', async (req, res) => {
             const countsMap = {};
             counts.forEach(c => { countsMap[c.ticket_type] = parseInt(c.count); });
 
+            // Las reservas guardan el label (ej. "UADY") en ticket_type, por eso contamos por label
             config.tickets = config.tickets.map(t => ({
                 ...t,
-                purchasedCount: countsMap[t.id] || 0
+                purchasedCount: countsMap[t.label] || 0
             }));
         }
 
