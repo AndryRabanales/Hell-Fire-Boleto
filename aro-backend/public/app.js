@@ -400,117 +400,37 @@ function renderFaqs() {
 }
 
 /* ============================================================
-   MODAL DE APARTADO
-   Al apartar guardamos la reserva (compra segura, status pending)
-   y luego redirigimos a WhatsApp para cerrar el pago.
+   APARTAR BOLETO
+   NO pide datos: registra el clic (para las estadísticas) en segundo
+   plano y redirige directo a WhatsApp con el texto listo para enviar.
 ============================================================ */
 function openReserveModal(id) {
-  openModal(id);
-}
+  const ticket = CONFIG.tickets.find(t => t.id === id);
+  if (!ticket || !state[id] || state[id].soldOut) return;
 
-function openModal(key) {
-  if (!state[key] || state[key].soldOut) return;
-
-  selectedTicket = key;
-  currentPhaseOb = getCurrentPhase();
-
-  const t = CONFIG.tickets.find(tk => tk.id === key);
-  if (!t) return;
-  const price = t.prices[currentPhaseOb.id] || 0;
-
-  document.getElementById('modal-title').textContent = t.label;
-  document.getElementById('modal-price-display').textContent = `$${price}`;
-
-  document.getElementById('modal-form').style.display = 'block';
-  document.getElementById('modal-success').style.display = 'none';
-  document.getElementById('input-instagram').value = '';
-  document.getElementById('input-whatsapp').value = '';
-
-  const btn = document.getElementById('btn-confirm');
-  btn.disabled = false;
-  btn.textContent = 'Apartar mi lugar';
-
-  document.getElementById('modal-overlay').classList.add('active');
-  document.body.style.overflow = 'hidden';
-
-  setTimeout(() => document.getElementById('input-instagram').focus(), 100);
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('active');
-  document.body.style.overflow = '';
-  selectedTicket = null;
-}
-
-function closeModalOutside(e) {
-  if (e.target === document.getElementById('modal-overlay')) closeModal();
-}
-
-function flagInvalid(el) {
-  el.style.borderColor = 'var(--danger)';
-  el.style.boxShadow = '0 0 0 3px rgba(255,59,48,0.25)';
-  setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2000);
-}
-
-async function confirmPurchase() {
-  const igEl = document.getElementById('input-instagram');
-  const waEl = document.getElementById('input-whatsapp');
-  const instagram = igEl.value.replace(/^@/, '').trim();
-  const whatsapp = waEl.value.trim();
   const qty = 1;
-  const btn = document.getElementById('btn-confirm');
-  const key = selectedTicket;
 
-  if (!instagram) { flagInvalid(igEl); return; }
-  if (!whatsapp || whatsapp.replace(/\D/g, '').length < 8) { flagInvalid(waEl); return; }
+  // 1. Registrar el apartado (anónimo) para el dashboard — en segundo plano
+  fetch(`${API_URL}/api/reservations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ticket_type: id, quantity: qty }),
+  })
+    .then(r => (r.ok ? r.json() : null))
+    .then(() => {
+      const tIdx = CONFIG.tickets.findIndex(t => t.id === id);
+      if (tIdx !== -1) {
+        CONFIG.tickets[tIdx].purchasedCount = (CONFIG.tickets[tIdx].purchasedCount || 0) + 1;
+      }
+      renderAllCards();
+    })
+    .catch(() => { });
 
-  const t = CONFIG.tickets.find(tk => tk.id === key);
-  const price = t ? (t.prices[getCurrentPhase().id] || 0) : 0;
-
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
-
-  try {
-    const res = await fetch(`${API_URL}/api/reservations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticket_type: key, instagram, whatsapp, quantity: qty }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error de servidor');
-
-    // Reserva guardada → aumenta el contador de vendidos (fakeStart base + reservas reales)
-    const tIdx = CONFIG.tickets.findIndex(tk => tk.id === key);
-    if (tIdx !== -1) {
-      CONFIG.tickets[tIdx].purchasedCount = (CONFIG.tickets[tIdx].purchasedCount || 0) + 1;
-    }
-    if (state[key]) {
-      state[key].realLeft = Math.max(0, state[key].realLeft - qty);
-      if (state[key].realLeft <= 0) state[key].soldOut = true;
-    }
-    renderAllCards();
-
-    // Éxito
-    document.getElementById('modal-form').style.display = 'none';
-    document.getElementById('modal-success').style.display = 'block';
-
-    // Redirigir a WhatsApp para cerrar el pago
-    const waNumber = (CONFIG.event_info.whatsapp || '').replace(/\D/g, '');
-    if (waNumber) {
-      const msg = encodeURIComponent(
-        `Hola, aparté un boleto ${t ? t.label : ''} ($${price}). Mi Instagram: @${instagram}. Quiero completar mi pago.`
-      );
-      window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
-    }
-
-    setTimeout(() => closeModal(), 4000);
-
-  } catch (err) {
-    alert('Hubo un error al apartar tu lugar. Por favor intenta de nuevo.\n' + err.message);
-    btn.disabled = false;
-    btn.textContent = 'Apartar mi lugar';
-  }
+  // 2. Redirigir a WhatsApp con el texto (sin pedir nada al usuario)
+  let waNumber = (CONFIG.event_info.whatsapp || '').replace(/\D/g, '');
+  if (!waNumber || waNumber === '529999000000') waNumber = '529992691367';
+  const msg = encodeURIComponent(`Hola, estoy interesado en comprar un boleto para ${ticket.label} (${qty}).`);
+  window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
 }
 
 /* ============================================================
@@ -530,13 +450,6 @@ function scheduleNextToast() {
 function toggleFaq(item) {
   // No longer used since FAQ section is removed
 }
-
-/* ============================================================
-   KEYBOARD
-============================================================ */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
-});
 
 /* ============================================================
    ELEGANT CONFETTI (ON FIRE Edition)

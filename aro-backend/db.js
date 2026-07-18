@@ -123,7 +123,7 @@ async function initDB() {
       "title": "HELL FIRE",
         "subtitle": "Noche de terror & fiesta — Halloween 2026",
           "date_text": "Sábado 31 de Octubre",
-            "whatsapp": "529999000000",
+            "whatsapp": "529992691367",
               "instagram": "https://instagram.com",
                 "tiktok": "https://tiktok.com",
                   "show_timer": true,

@@ -7,15 +7,18 @@ const router = express.Router();
 // POST /api/reservations — public, create a reservation
 router.post('/', async (req, res) => {
     const { ticket_type, instagram, whatsapp, quantity } = req.body;
-    console.log(`🎟️ New reservation attempt: [${instagram}] for [${ticket_type}]`);
+    console.log(`🎟️ New reservation (click Apartar) for [${ticket_type}]`);
 
-    if (!ticket_type || !instagram || !whatsapp) {
-        return res.status(400).json({ error: 'ticket_type, instagram y whatsapp son requeridos' });
+    // Solo se requiere el tipo de boleto. El clic en "Apartar" cuenta como
+    // apartado y redirige a WhatsApp; NO se pide Instagram ni WhatsApp.
+    if (!ticket_type) {
+        return res.status(400).json({ error: 'ticket_type es requerido' });
     }
 
     const qty = 1; // Force 1 ticket as per user request
 
-    const ig = instagram.replace(/^@/, '').trim();
+    const ig = (instagram || '').replace(/^@/, '').trim();
+    const wa = (whatsapp || '').trim();
 
     try {
         const configRow = await getRow("SELECT value FROM config WHERE key = 'tickets'");
@@ -51,7 +54,7 @@ router.post('/', async (req, res) => {
         // Uses $1, $2, ... $6
         const result = await execute(
             `INSERT INTO reservations (ticket_type, instagram, whatsapp, fase, quantity, price_each) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [ticketInfo?.label || ticket_type, ig, whatsapp, phaseName, qty, price] // save the friendly label for the UI
+            [ticketInfo?.label || ticket_type, ig, wa, phaseName, qty, price] // save the friendly label for the UI
         );
 
         const newId = result.id || result.lastID || result[0]?.id; // handles Postgres RETURNING vs sqlite hack

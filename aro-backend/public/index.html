@@ -7,7 +7,7 @@
   <title>HELL FIRE — Boletos · Noche de Terror</title>
   <meta name="description"
     content="Compra tus boletos para HELL FIRE, la fiesta de Halloween más esperada. Noche de terror & fiesta. Precios por fase, solo por tiempo limitado." />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -173,52 +173,10 @@
     <p>© 2026 HELL FIRE</p>
   </footer>
 
-  <!-- ====================================================
-     MODAL DE APARTADO
-==================================================== -->
-  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <div class="modal-kicker">Apartar boleto</div>
-          <h3 class="modal-title" id="modal-title">Boleto</h3>
-        </div>
-        <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
-      </div>
-
-      <div id="modal-form">
-        <div class="modal-price" id="modal-price-display">$0</div>
-
-        <div class="form-group">
-          <label class="form-label" for="input-instagram">Instagram</label>
-          <input class="form-input" id="input-instagram" type="text" placeholder="@tu_usuario" autocomplete="off" />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="input-whatsapp">WhatsApp</label>
-          <input class="form-input" id="input-whatsapp" type="tel" inputmode="tel" placeholder="999 000 0000" />
-        </div>
-
-        <button class="btn-confirm" id="btn-confirm" onclick="confirmPurchase()">Apartar mi lugar</button>
-        <p class="modal-note">Tu lugar queda registrado al instante. Te contactamos por WhatsApp para cerrar el pago.</p>
-      </div>
-
-      <div class="modal-success" id="modal-success">
-        <div class="success-icon">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </div>
-        <div class="success-title">¡Lugar apartado!</div>
-        <p class="success-msg">Te redirigimos a WhatsApp para completar tu pago. Guarda tu lugar.</p>
-      </div>
-    </div>
-  </div>
-
   <div id="toast-container"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 
 </html>
