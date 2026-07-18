@@ -46,11 +46,12 @@ router.put('/:key', auth, async (req, res) => {
     }
 
     try {
-        const result = await execute(
-            'UPDATE config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2',
-            [JSON.stringify(value), key]
+        // UPSERT: crea la clave si no existe (p. ej. metric_descriptions no viene en el seed)
+        await execute(
+            `INSERT INTO config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+             ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
+            [key, JSON.stringify(value)]
         );
-        if (result.changes === 0 && !result.id) return res.status(404).json({ error: 'Clave no encontrada' });
         res.json({ success: true, key, value });
     } catch (err) {
         console.error('Update config error:', err.message);

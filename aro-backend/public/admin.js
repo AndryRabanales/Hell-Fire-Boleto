@@ -166,7 +166,8 @@ function renderEditorTickets() {
                     <button class="btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteTicket(${idx})">🗑️</button>
                 </div>
             </div>
-            <p style="font-size:11px; color:var(--muted); margin-top:5px;">Stock: ${t.realStock} | Falso: ${t.fakeStart}/${t.fakeTotal}</p>
+            <p style="font-size:11px; color:var(--muted); margin-top:5px;">Stock: ${t.realStock} | Inicio: ${t.fakeStart}/${t.fakeTotal}${t.badge ? ` | Badge: ${t.badge}` : ''}</p>
+            ${t.subtitle ? `<p style="font-size:10px; color:var(--muted); margin-top:2px; opacity:0.7;">${t.subtitle}</p>` : ''}
         `;
         container.appendChild(item);
     });
@@ -174,15 +175,26 @@ function renderEditorTickets() {
 
 let editingTicketIdx = null;
 
+const BADGE_STYLES = [
+    { value: '', label: 'Sin badge' },
+    { value: 'badge-normal', label: 'Normal (rojo)' },
+    { value: 'badge-popular', label: 'Popular (naranja brillante)' },
+    { value: 'badge-exclusive', label: 'Exclusivo (dorado)' },
+    { value: 'badge-promo', label: 'Promo (verde)' },
+];
+
 function openTicketModal(idx = null) {
     editingTicketIdx = idx;
     const t = idx !== null ? dbConfig.tickets[idx] : {
-        id: 'new-' + Date.now(),
+        id: 'tkt-' + Date.now(),
         label: '',
+        subtitle: '',
         emoji: '🎟️',
         realStock: 100,
-        fakeStart: 70,
+        fakeStart: 0,
         fakeTotal: 100,
+        badge: '',
+        badgeClass: '',
         prices: {}
     };
 
@@ -194,30 +206,45 @@ function openTicketModal(idx = null) {
         pricesHtml += `
             <div style="margin-bottom:8px;">
                 <label style="font-size:11px; color:var(--muted)">Precio en ${p.name}</label>
-                <input type="number" class="editor-input" value="${t.prices[p.id] || 0}" oninput="updateModalTicketPrice('${p.id}', this.value)">
+                <input type="number" class="editor-input" data-phase-id="${p.id}" value="${t.prices[p.id] || 0}">
             </div>
         `;
     });
 
+    const badgeOptions = BADGE_STYLES.map(b =>
+        `<option value="${b.value}" ${(t.badgeClass || '') === b.value ? 'selected' : ''}>${b.label}</option>`
+    ).join('');
+
     body.innerHTML = `
         <div class="editor-form-group">
             <label>Nombre / Categoría</label>
-            <input type="text" id="modal-t-label" class="editor-input" value="${t.label}" placeholder="Ej: General">
+            <input type="text" id="modal-t-label" class="editor-input" value="${t.label || ''}" placeholder="Ej: General">
         </div>
         <div class="editor-form-group">
-            <label>Emoji</label>
-            <input type="text" id="modal-t-emoji" class="editor-input" value="${t.emoji}" placeholder="🎟️">
+            <label>Subtítulo (descripción corta)</label>
+            <input type="text" id="modal-t-subtitle" class="editor-input" value="${t.subtitle || ''}" placeholder="Ej: Acceso completo al evento">
         </div>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <div style="flex:1.4">
+                <label style="font-size:11px; color:var(--muted)">Texto del Badge</label>
+                <input type="text" id="modal-t-badge" class="editor-input" value="${t.badge || ''}" placeholder="Ej: MÁS POPULAR">
+            </div>
             <div style="flex:1">
-                <label>Stock Real</label>
+                <label style="font-size:11px; color:var(--muted)">Estilo del Badge</label>
+                <select id="modal-t-badgeclass" class="editor-input">${badgeOptions}</select>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <div style="flex:1">
+                <label style="font-size:11px; color:var(--muted)">Stock Real</label>
                 <input type="number" id="modal-t-stock" class="editor-input" value="${t.realStock}">
             </div>
             <div style="flex:1">
-                <label>Punto Inicio (Falso)</label>
+                <label style="font-size:11px; color:var(--muted)">Punto Inicio (Falso)</label>
                 <input type="number" id="modal-t-fakestart" class="editor-input" value="${t.fakeStart}">
             </div>
             <div style="flex:1">
-                <label>Total Vista (Falso)</label>
+                <label style="font-size:11px; color:var(--muted)">Total Vista (Falso)</label>
                 <input type="number" id="modal-t-faketotal" class="editor-input" value="${t.fakeTotal}">
             </div>
         </div>
@@ -232,34 +259,37 @@ function openTicketModal(idx = null) {
     document.getElementById('ticket-modal').style.display = 'flex';
 }
 
-function updateModalTicketPrice(phaseId, val) {
-    // This will be handled in saveTicketModal by reading all inputs or we can keep a temp object
-}
-
 function closeTicketModal() {
     document.getElementById('ticket-modal').style.display = 'none';
 }
 
 function saveTicketModal() {
-    const label = document.getElementById('modal-t-label').value;
-    const emoji = document.getElementById('modal-t-emoji').value;
-    const realStock = parseInt(document.getElementById('modal-t-stock').value);
-    const fakeStart = parseInt(document.getElementById('modal-t-fakestart').value);
-    const fakeTotal = parseInt(document.getElementById('modal-t-faketotal').value);
+    const label = document.getElementById('modal-t-label').value.trim();
+    if (!label) {
+        showToast('El boleto necesita un nombre', 'error');
+        return;
+    }
+
+    // Partimos del boleto original para NO perder campos (emoji, id, etc.)
+    const base = editingTicketIdx !== null ? { ...dbConfig.tickets[editingTicketIdx] } : {
+        id: 'tkt-' + Date.now(),
+        emoji: '🎟️'
+    };
 
     const prices = {};
-    const priceInputs = document.querySelectorAll('#modal-prices-container input');
-    dbConfig.phases.forEach((p, i) => {
-        prices[p.id] = parseInt(priceInputs[i].value) || 0;
+    document.querySelectorAll('#modal-prices-container input').forEach(inp => {
+        prices[inp.dataset.phaseId] = parseInt(inp.value) || 0;
     });
 
     const ticketData = {
-        id: editingTicketIdx !== null ? dbConfig.tickets[editingTicketIdx].id : 'tkt-' + Date.now(),
+        ...base,
         label,
-        emoji,
-        realStock,
-        fakeStart,
-        fakeTotal,
+        subtitle: document.getElementById('modal-t-subtitle').value.trim(),
+        badge: document.getElementById('modal-t-badge').value.trim(),
+        badgeClass: document.getElementById('modal-t-badgeclass').value,
+        realStock: parseInt(document.getElementById('modal-t-stock').value) || 0,
+        fakeStart: parseInt(document.getElementById('modal-t-fakestart').value) || 0,
+        fakeTotal: parseInt(document.getElementById('modal-t-faketotal').value) || 0,
         prices
     };
 
@@ -272,6 +302,7 @@ function saveTicketModal() {
     closeTicketModal();
     renderEditorTickets();
     syncPreview();
+    showToast('Boleto actualizado — recuerda Guardar Cambios');
 }
 
 function deleteTicket(idx) {
@@ -303,15 +334,23 @@ async function saveVisualChanges() {
 
     try {
         // Save all major segments
-        await Promise.all([
+        const responses = await Promise.all([
             saveConfigField('event_info', dbConfig.event_info),
             saveConfigField('tickets', dbConfig.tickets),
             saveConfigField('phases', dbConfig.phases),
             saveConfigField('rewards', dbConfig.rewards)
         ]);
+
+        if (responses.some(r => r.status === 401 || r.status === 403)) return logout();
+
+        const failed = responses.filter(r => !r.ok);
+        if (failed.length > 0) {
+            throw new Error(`${failed.length} secciones no se guardaron`);
+        }
+
         showToast('🚀 Sitio actualizado y guardado correctamente', 'success');
     } catch (err) {
-        showToast('Error al guardar cambios permanentes', 'error');
+        showToast('Error al guardar: ' + err.message, 'error');
     }
 }
 
@@ -326,6 +365,14 @@ async function saveConfigField(key, value) {
 // ============================================================
 // PHASE & FAQ RENDERERS (Simplificados para el nuevo panel)
 // ============================================================
+// Formatea una fecha para <input type="datetime-local"> en hora LOCAL (sin corrimiento UTC)
+function toLocalInputValue(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function renderEditorPhases() {
     const container = document.getElementById('editor-phases-list');
     container.innerHTML = '';
@@ -334,7 +381,7 @@ function renderEditorPhases() {
         item.style = 'margin-bottom:12px; display:flex; gap:8px;';
         item.innerHTML = `
             <input type="text" class="editor-input" value="${p.name}" oninput="updatePhase(${idx}, 'name', this.value)" style="flex:1;">
-            <input type="datetime-local" class="editor-input" value="${new Date(p.endDate).toISOString().slice(0, 16)}" oninput="updatePhase(${idx}, 'endDate', this.value)" style="flex:1.2;">
+            <input type="datetime-local" class="editor-input" value="${toLocalInputValue(p.endDate)}" oninput="updatePhase(${idx}, 'endDate', this.value)" style="flex:1.2;">
             <button class="btn-danger" onclick="removePhaseRow(${idx})">🗑️</button>
         `;
         container.appendChild(item);
@@ -342,17 +389,23 @@ function renderEditorPhases() {
 }
 
 function updatePhase(idx, field, val) {
-    if (field === 'endDate') val = new Date(val).toISOString();
+    if (field === 'endDate') {
+        if (!val) return; // input incompleto — no rompas la fecha
+        // Guardamos la hora local tal cual (formato "YYYY-MM-DDTHH:mm:00"),
+        // igual que las fases seed — el front la interpreta en hora local.
+        val = val + ':00';
+    }
     dbConfig.phases[idx][field] = val;
     syncPreview();
 }
 
 function addPhaseRow() {
-    const newId = (dbConfig.phases.length + 1).toString();
+    // ID único: máximo id numérico existente + 1 (evita choques tras borrar fases)
+    const maxId = dbConfig.phases.reduce((m, p) => Math.max(m, parseInt(p.id) || 0), 0);
     dbConfig.phases.push({
-        id: newId,
+        id: String(maxId + 1),
         name: 'Nueva Fase',
-        endDate: new Date(Date.now() + 86400000 * 7).toISOString()
+        endDate: toLocalInputValue(new Date(Date.now() + 86400000 * 7)) + ':00'
     });
     renderEditorPhases();
     syncPreview();
@@ -657,8 +710,8 @@ async function handleLogin() {
 
 // Auth / Shared Tools
 function logout() {
-    authToken = null;
     sessionStorage.removeItem('aro_admin_token');
+    sessionStorage.removeItem('aro_admin_name');
     location.reload();
 }
 

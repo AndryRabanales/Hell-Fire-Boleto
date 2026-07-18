@@ -174,7 +174,7 @@ router.patch('/:id', auth, async (req, res) => {
         params.push(id);
         const result = await execute(`UPDATE reservations SET ${fields.join(', ')} WHERE id = $${pIdx}`, params);
 
-        if (result.changes === 0 && !result.id) return res.status(404).json({ error: 'Reserva no encontrada' });
+        if (result.changes === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
 
         const updated = await getRow('SELECT * FROM reservations WHERE id = $1', [id]);
         res.json({ success: true, reservation: updated });
@@ -189,7 +189,7 @@ router.delete('/:id', auth, async (req, res) => {
     const { id } = req.params;
     try {
         const result = await execute('DELETE FROM reservations WHERE id = $1', [id]);
-        if (result.changes === 0 && !result.id) return res.status(404).json({ error: 'Reserva no encontrada' });
+        if (result.changes === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
         res.json({ success: true });
     } catch (err) {
         console.error('Delete reservation error:', err.message);
