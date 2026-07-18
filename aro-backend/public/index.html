@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HELL FIRE — Boletos · Noche de Terror</title>
+  <meta name="description"
+    content="Compra tus boletos para HELL FIRE, la fiesta de Halloween más esperada. Noche de terror & fiesta. Precios por fase, solo por tiempo limitado." />
+  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Cinzel+Decorative:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>" />
+</head>
+
+<body>
+
+  <!-- Brasas flotantes -->
+  <div class="ember" style="left:12%; width:5px; height:5px; animation-duration:7s;"></div>
+  <div class="ember" style="left:28%; width:4px; height:4px; animation-duration:9s; animation-delay:2s;"></div>
+  <div class="ember" style="left:47%; width:6px; height:6px; animation-duration:6.5s; animation-delay:1s;"></div>
+  <div class="ember" style="left:63%; width:4px; height:4px; animation-duration:8s; animation-delay:3.5s;"></div>
+  <div class="ember" style="left:78%; width:5px; height:5px; animation-duration:7.5s; animation-delay:0.5s;"></div>
+  <div class="ember" style="left:90%; width:3px; height:3px; animation-duration:10s; animation-delay:4s;"></div>
+
+  <!-- ====================================================
+     HERO
+==================================================== -->
+  <section class="hero">
+    <!-- Sello -->
+    <div class="hero-seal">
+      <div class="seal-text">Solo con<br>boleto</div>
+      <div class="seal-big">🎃</div>
+    </div>
+
+    <div class="hero-kicker">Halloween 2026 · Noche de terror</div>
+    <h1 class="hero-title">HELL <span class="title-fire">FIRE</span></h1>
+    <p class="hero-subtitle"></p>
+    <div class="hero-ornament">
+      <div class="line-l"></div>
+      <div class="star">✦</div>
+      <div class="line-r"></div>
+    </div>
+  </section>
+
+  <!-- Cinta de precaución -->
+  <div class="caution-tape">
+    <span>peligro · peligro · peligro · peligro · peligro · peligro · peligro · peligro · peligro ·
+      peligro</span>
+  </div>
+
+  <!-- Phase Countdown -->
+  <section class="phase-section animate-on-scroll" style="padding-bottom: 0;">
+    <div class="phase-container" style="margin-bottom: 0;">
+      <div class="phase-current-label">FASE ACTUAL: <span id="current-phase-name">...</span></div>
+      <div class="countdown-grid" id="phase-countdown">
+        <div class="countdown-item">
+          <span class="countdown-value" id="cd-days">00</span>
+          <span class="countdown-label">Días</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-value" id="cd-hours">00</span>
+          <span class="countdown-label">Hrs</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-value" id="cd-mins">00</span>
+          <span class="countdown-label">Min</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-value" id="cd-secs">00</span>
+          <span class="countdown-label">Seg</span>
+        </div>
+      </div>
+      <p class="phase-urgency">¡Apresúrate! El precio sube al terminar el cronómetro. 🔥</p>
+    </div>
+  </section>
+
+  <!-- Ticket Selection & Rewards -->
+  <main class="section">
+    <div class="tickets-grid" id="tickets-grid">
+      <!-- Tickets will be injected here via app.js -->
+    </div>
+
+    <section class="rewards-section animate-on-scroll">
+      <div class="section-badge">Ofertas del inframundo</div>
+      <div class="rewards-grid" id="rewards-grid">
+        <!-- Injected via app.js -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Cinta de precaución roja -->
+  <div class="caution-tape tape-blood">
+    <span>hell fire · hell fire · hell fire · hell fire · hell fire · hell fire · hell fire · hell
+      fire</span>
+  </div>
+
+  <!-- Phase Schedule Info -->
+  <section class="phase-section animate-on-scroll">
+    <div class="phase-info-container">
+      <h3 class="phase-info-title">Cronograma de Fases 📈</h3>
+      <div class="phase-steps" id="phase-steps">
+        <!-- Injected via app.js from CONFIG.phases -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Location Section -->
+  <section class="location-section animate-on-scroll">
+    <div class="location-card">
+      <div class="location-icon">📍</div>
+      <h3 class="location-title">Ubicación del Evento</h3>
+      <p class="location-desc">Haz clic abajo para ver el mapa y llegar sin problemas.</p>
+      <a href="https://maps.app.goo.gl/g2Jpuy8AZ5bpYH4m6?g_st=aw" target="_blank" class="btn-location">
+        <span>🗺️ VER EN GOOGLE MAPS</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ====================================================
+     HISTORIAL DE FIESTAS
+==================================================== -->
+  <section class="history-section animate-on-scroll">
+    <div class="section-label">Nuestra trayectoria</div>
+    <h3 class="history-title">Historial de Fiestas 🕯️</h3>
+    <div class="history-card">
+      <div class="history-flame">🔥</div>
+      <div class="history-info">
+        <div class="history-event">ON FIRE 2026</div>
+        <p class="history-detail">Nuestra primera edición reunió a <strong>828 personas</strong> en una noche
+          inolvidable. Gracias por encender la llama con nosotros.</p>
+      </div>
+      <div class="history-stamp">Evento<br>realizado<br>✦ 828 ✦</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-socials">
+      <a href="https://instagram.com" target="_blank" class="footer-social-link social-pulsating" id="link-instagram">📸
+        Instagram</a>
+      <a href="https://wa.me/529992691367" target="_blank" class="footer-social-link social-pulsating"
+        id="link-whatsapp">📱 WhatsApp</a>
+    </div>
+    <p class="footer-note">Una vez pagado, tendrás tu <strong>check</strong> para los premios de la fiesta. 🎃</p>
+    <p>© 2026 HELL FIRE</p>
+  </footer>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="app.js?v=4"></script>
+</body>
+
+</html>

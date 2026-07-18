@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARO — Panel de Administración</title>
+    <link rel="stylesheet" href="admin.css?v=3">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+</head>
+
+<body>
+
+    <!-- ==========================================
+       LOGIN SCREEN
+  =========================================== -->
+    <div id="login-container"
+        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; z-index: 1;">
+        <div class="login-card">
+            <div class="login-logo">🔒</div>
+            <div class="login-title">ARO Admin</div>
+            <div class="login-subtitle">Acceso restringido — Solo administradores</div>
+
+            <div>
+                <label class="form-label">CORREO ELECTRÓNICO</label>
+                <input type="email" id="login-email" class="form-input" placeholder="admin@aro.com"
+                    autocomplete="email">
+            </div>
+            <div>
+                <label class="form-label">CONTRASEÑA</label>
+                <input type="password" id="login-password" class="form-input" placeholder="••••••••">
+            </div>
+
+            <div id="login-error" class="login-error"></div>
+
+            <button class="btn-login" id="btn-login" onclick="handleLogin()">Entrar al Panel</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+       ADMIN APP (Hidden until login)
+  =========================================== -->
+    <div id="app-container" class="app-layout" style="display: none;">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>🎟️ ARO Panel</h3>
+                <p>Hola, <span id="admin-name">Admin</span></p>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" onclick="switchView('data', this)">📊 Panel de Datos</button>
+                <button class="nav-btn" onclick="switchView('editor', this)">🎨 Editor Visual</button>
+            </nav>
+            <button class="btn-logout" onclick="logout()">Cerrar Sesión 🚪</button>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+
+            <!-- VIEW: DATA & STATS -->
+            <div id="view-data" class="main-view active">
+                <!-- DASHBOARD -->
+                <section id="section-dashboard" class="content-section active">
+                    <header class="section-header">
+                        <h2>📊 Resumen General</h2>
+                        <button class="btn-secondary" onclick="loadDashboard()">Actualizar 🔄</button>
+                    </header>
+                    <div class="stats-grid">
+                        <div class="stat-card" id="card-qty" onclick="toggleFlip(this)">
+                            <div class="stat-card-inner">
+                                <div class="stat-card-front">
+                                    <div class="stat-title">Boletos Apartados</div>
+                                    <div class="stat-value" id="stat-total-qty">0</div>
+                                </div>
+                                <div class="stat-card-back" onclick="event.stopPropagation()">
+                                    <h4>Información</h4>
+                                    <textarea id="desc-qty" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
+                                    <button class="btn-save-metric" onclick="saveMetricDescription('qty')">Guardar 💾</button>
+                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="card-rev" onclick="toggleFlip(this)">
+                            <div class="stat-card-inner">
+                                <div class="stat-card-front">
+                                    <div class="stat-title">Ingresos Potenciales 💰</div>
+                                    <div class="stat-value" id="stat-total-rev">$0</div>
+                                </div>
+                                <div class="stat-card-back" onclick="event.stopPropagation()">
+                                    <h4>Información</h4>
+                                    <textarea id="desc-rev" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
+                                    <button class="btn-save-metric" onclick="saveMetricDescription('rev')">Guardar 💾</button>
+                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="card-res" onclick="toggleFlip(this)">
+                            <div class="stat-card-inner">
+                                <div class="stat-card-front">
+                                    <div class="stat-title">Reservas Totales</div>
+                                    <div class="stat-value" id="stat-total-res">0</div>
+                                </div>
+                                <div class="stat-card-back" onclick="event.stopPropagation()">
+                                    <h4>Información</h4>
+                                    <textarea id="desc-res" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
+                                    <button class="btn-save-metric" onclick="saveMetricDescription('res')">Guardar 💾</button>
+                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3>Desglose por Categoría</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>Estado</th>
+                                    <th>Operaciones</th>
+                                    <th>Boletos Sold</th>
+                                    <th>Ingreso Estimado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stats-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- RESERVATIONS -->
+                <section id="section-reservations" class="content-section active" style="margin-top:40px;">
+                    <header class="section-header">
+                        <h2>📋 Todas las Reservas</h2>
+                        <div style="display:flex; gap:10px;">
+                            <select id="filter-status" onchange="loadReservations()" class="input-light">
+                                <option value="">Todos los estados</option>
+                                <option value="pending">Pendientes (⏳)</option>
+                                <option value="confirmed">Confirmados (✅)</option>
+                                <option value="cancelled">Cancelados (❌)</option>
+                            </select>
+                            <input type="text" id="filter-search" placeholder="🔍 Buscar Instagram..."
+                                class="input-light" onkeyup="if(event.key==='Enter') loadReservations()">
+                            <button class="btn-primary" onclick="loadReservations()">Buscar</button>
+                        </div>
+                    </header>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Instagram</th>
+                                    <th>WhatsApp</th>
+                                    <th>Categoría</th>
+                                    <th>Fase</th>
+                                    <th>Cant.</th>
+                                    <th>Pago (c/u)</th>
+                                    <th>Estado</th>
+                                    <th>Notas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservations-table-body">
+                                <tr>
+                                    <td colspan="11" class="text-center">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- VIEW: VISUAL EDITOR (Split screen) -->
+            <div id="view-editor" class="main-view">
+                <div class="editor-split">
+                    <!-- Control Panel -->
+                    <div class="editor-sidebar">
+                        <header class="editor-sidebar-header">
+                            <h2>🎨 Personalización</h2>
+                            <p>Cambios visibles al instante</p>
+                        </header>
+
+                        <div class="editor-tabs">
+                            <button class="tab-btn active" onclick="showTab('tab-general', this)">General</button>
+                            <button class="tab-btn" onclick="showTab('tab-tickets', this)">Boletos</button>
+                            <button class="tab-btn" onclick="showTab('tab-phases', this)">Fases</button>
+                            <button class="tab-btn" onclick="showTab('tab-rewards', this)">Promociones</button>
+                        </div>
+
+                        <!-- Tab: General Info -->
+                        <div id="tab-general" class="tab-content active">
+                            <div class="editor-form-group">
+                                <label>Título del Evento</label>
+                                <input type="text" id="edit-title" class="editor-input" oninput="syncPreview()">
+                            </div>
+                            <div class="editor-form-group">
+                                <label>Subtítulo</label>
+                                <textarea id="edit-subtitle" class="editor-input" oninput="syncPreview()"
+                                    rows="3"></textarea>
+                            </div>
+                            <div class="editor-form-group">
+                                <label>Fecha Visible</label>
+                                <input type="text" id="edit-date-text" class="editor-input" oninput="syncPreview()">
+                            </div>
+                            <div class="editor-toggle-list">
+                                <label class="toggle-row">
+                                    <input type="checkbox" id="toggle-timer" onchange="syncPreview()">
+                                    <span>Mostrar Cuenta Regresiva</span>
+                                </label>
+                                <label class="toggle-row">
+                                    <input type="checkbox" id="toggle-phase-alert" onchange="syncPreview()">
+                                    <span>Mostrar Alerta de Fase</span>
+                                </label>
+                            </div>
+                            <div class="editor-form-group">
+                                <label>📱 Redes Sociales</label>
+                                <input type="text" id="edit-whatsapp" class="editor-input" placeholder="WhatsApp Number"
+                                    oninput="syncPreview()">
+                                <input type="text" id="edit-instagram" class="editor-input" placeholder="Instagram URL"
+                                    oninput="syncPreview()" style="margin-top:8px;">
+                                <input type="text" id="edit-tiktok" class="editor-input" placeholder="TikTok URL"
+                                    oninput="syncPreview()" style="margin-top:8px;">
+                            </div>
+                        </div>
+
+                        <!-- Tab: Tickets -->
+                        <div id="tab-tickets" class="tab-content">
+                            <div id="editor-tickets-list" class="editor-items-list">
+                                <!-- Managed via JS -->
+                            </div>
+                            <button class="btn-ghost" onclick="openTicketModal()">✚ Agregar Nuevo Boleto</button>
+                        </div>
+
+                        <!-- Tab: Phases -->
+                        <div id="tab-phases" class="tab-content">
+                            <div id="editor-phases-list" class="editor-items-list">
+                                <!-- Managed via JS -->
+                            </div>
+                            <button class="btn-ghost" onclick="addPhaseRow()">✚ Nueva Fase</button>
+                        </div>
+
+                        <!-- Tab: Rewards -->
+                        <div id="tab-rewards" class="tab-content">
+                            <div id="editor-rewards-list" class="editor-items-list">
+                                <!-- Managed via JS -->
+                            </div>
+                            <button class="btn-ghost" onclick="addRewardRow()">✚ Nueva Promoción</button>
+                        </div>
+
+                        <div class="editor-footer">
+                            <button class="btn-success w-full" onclick="saveVisualChanges()">✅ Guardar Cambios
+                                Permanentemente</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="editor-preview">
+                        <div class="preview-toolbar">
+                            <div class="preview-url">
+                                <span>🌐 aro-production.up.railway.app</span>
+                            </div>
+                            <button class="btn-preview-refresh" onclick="refreshPreview()">🔄</button>
+                        </div>
+                        <div class="preview-container">
+                            <iframe id="preview-iframe" src="index.html"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL PARA TICKET EDITOR -->
+    <div class="modal-overlay" id="ticket-modal" style="display:none;">
+        <div class="modal">
+            <h3 id="ticket-modal-title">Editar Boleto</h3>
+            <div id="ticket-modal-body" style="max-height: 70vh; overflow-y:auto; padding-right:10px;">
+                <!-- Inject form fields via JS -->
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-success" style="flex:1" onclick="saveTicketModal()">Guardar</button>
+                <button class="btn-secondary" style="flex:1" onclick="closeTicketModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="admin.js?v=4"></script>
+
+</body>
+
+</html>
