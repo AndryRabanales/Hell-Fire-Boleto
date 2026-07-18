@@ -112,8 +112,8 @@ async function initDB() {
     ]`],
     ['tickets', `[
       { "id": "students", "label": "UADY", "emoji": "🎓", "subtitle": "Credencial UADY vigente requerida", "realStock": 700, "fakeTotal": 700, "fakeStart": 637, "prices": { "1": 150, "2": 180, "3": 200, "4": 250 }, "badge": "PREVENTA", "badgeClass": "badge-normal" },
-      { "id": "general", "label": "Externos", "emoji": "🎉", "subtitle": "Acceso completo al evento", "realStock": 700, "fakeTotal": 700, "fakeStart": 452, "prices": { "1": 180, "2": 200, "3": 250, "4": 300 }, "badge": "🔥 MÁS POPULAR", "badgeClass": "badge-popular" },
-      { "id": "vip", "label": "VIP", "emoji": "✨", "subtitle": "Experiencia premium sin igual", "realStock": 200, "fakeTotal": 200, "fakeStart": 122, "prices": { "1": 300, "2": 350, "3": 400, "4": 500 }, "badge": "👑 EXCLUSIVO", "badgeClass": "badge-exclusive" }
+      { "id": "general", "label": "Externos", "emoji": "🎉", "subtitle": "Acceso completo al evento", "realStock": 700, "fakeTotal": 700, "fakeStart": 452, "prices": { "1": 180, "2": 200, "3": 250, "4": 300 }, "badge": "MÁS POPULAR", "badgeClass": "badge-popular" },
+      { "id": "vip", "label": "VIP", "emoji": "✨", "subtitle": "Experiencia premium sin igual", "realStock": 200, "fakeTotal": 200, "fakeStart": 122, "prices": { "1": 300, "2": 350, "3": 400, "4": 500 }, "badge": "EXCLUSIVO", "badgeClass": "badge-exclusive" }
     ]`],
     ['faqs', `[
       { "id": "faq1", "question": "¿Cómo pago mi boleto?", "answer": "Aceptamos transferencia bancaria, CoDi y OXXO Pay. Al confirmar tu compra recibirás por WhatsApp los datos de pago." },

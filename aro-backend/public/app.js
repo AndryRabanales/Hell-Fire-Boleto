@@ -37,6 +37,44 @@ let CONFIG = {
 };
 
 /* ============================================================
+   ICON SYSTEM (SVG en lugar de emojis)
+============================================================ */
+const ICONS = {
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  cap: '<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  ticket: '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+  sparkles: '<path d="M9.94 14.5A2 2 0 0 0 8.5 13.06l-4.14-1.07a.5.5 0 0 1 0-.98L8.5 9.94A2 2 0 0 0 9.94 8.5l1.06-4.14a.5.5 0 0 1 .98 0L13.06 8.5A2 2 0 0 0 14.5 9.94l4.14 1.07a.5.5 0 0 1 0 .98L14.5 13.06a2 2 0 0 0-1.44 1.44l-1.06 4.14a.5.5 0 0 1-.98 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/>',
+  crown: '<path d="M11.56 3.27a.5.5 0 0 1 .88 0l2.95 4.6a1 1 0 0 0 1.52.3l3.28-2.66a.5.5 0 0 1 .8.52l-2.1 8.24a1 1 0 0 1-.96.73H6.07a1 1 0 0 1-.96-.73L3.01 6.03a.5.5 0 0 1 .8-.52l3.28 2.66a1 1 0 0 0 1.52-.3z"/><path d="M5 20h14"/>',
+  wine: '<path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5z"/>',
+  gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4"/><path d="M15.4 6.5l-6.8 4"/>',
+  pin: '<path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+  map: '<path d="M9 6l-6 3v12l6-3 6 3 6-3V6l-6 3z"/><path d="M9 6v12"/><path d="M15 9v12"/>',
+  instagram: '<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
+  whatsapp: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>'
+};
+
+function svgIcon(name, opts = {}) {
+  const s = opts.size || 24;
+  const cls = opts.cls ? ` class="${opts.cls}"` : '';
+  const sw = opts.strokeWidth || 1.6;
+  return `<svg${cls} width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.flame}</svg>`;
+}
+
+// Mapea un boleto a su icono según id (con fallback a ticket genérico)
+function iconForTicket(t) {
+  const map = { students: 'cap', general: 'ticket', vip: 'sparkles', women: 'sparkles' };
+  return svgIcon(map[t.id] || 'ticket', { size: 34 });
+}
+
+// Mapea un premio a su icono según el emoji guardado (con fallback a flama)
+function iconForReward(r) {
+  const map = { '🍾': 'wine', '🍀': 'gift', '⏰': 'clock', '📱': 'share', '🎁': 'gift' };
+  return svgIcon(map[r.icon] || 'flame', { size: 26 });
+}
+
+/* ============================================================
    STATE
 ============================================================ */
 const state = {};
@@ -135,9 +173,9 @@ function getPhaseLabel(phase) {
   const isFirst = sorted[0].id === phase.id;
   const isLast = sorted[sorted.length - 1].id === phase.id;
 
-  if (isFirst) return `🟢 ${phase.name}`;
-  if (isLast) return `🔴 ${phase.name} — Precio final`;
-  return `🟡 ${phase.name}`;
+  const color = isFirst ? 'var(--success)' : isLast ? 'var(--danger)' : 'var(--fire)';
+  const suffix = isLast ? ' — Precio final' : '';
+  return `<span class="phase-dot" style="background:${color}"></span>${phase.name}${suffix}`;
 }
 
 function getPreviousPrice(ticket, currentPhaseId) {
@@ -240,7 +278,9 @@ function renderAllCards() {
     const price = t.prices[currentPhaseOb.id] || 0;
 
     const isAgotado = s.soldOut;
-    const btnText = isAgotado ? '🚫 AGOTADO' : (t.id === 'vip' ? `👑 OBTENER VIP — $${price}` : `🎟️ APARTAR — $${price}`);
+    const btnIcon = isAgotado ? '' : svgIcon(t.id === 'vip' ? 'crown' : 'ticket', { size: 18, cls: 'btn-ic' });
+    const btnLabel = isAgotado ? 'AGOTADO' : (t.id === 'vip' ? `OBTENER VIP — $${price}` : `APARTAR — $${price}`);
+    const btnText = `${btnIcon}<span>${btnLabel}</span>`;
 
     const soldCount = (t.fakeStart || 0) + (t.purchasedCount || 0);
     const totalCap = t.fakeTotal || 1000;
@@ -249,7 +289,7 @@ function renderAllCards() {
     const cardHTML = `
       <article class="ticket-card ${t.id === 'vip' ? 'card-vip' : 'card-standard'}" id="card-${t.id}">
         ${t.badge ? `<span class="card-badge ${t.badgeClass}">${t.badge}</span>` : ''}
-        <span class="card-emoji">${t.emoji}</span>
+        <span class="card-icon">${iconForTicket(t)}</span>
         <h3 class="card-title">${t.label}</h3>
         <p class="card-subtitle">${t.subtitle}</p>
 
@@ -257,7 +297,7 @@ function renderAllCards() {
           <div class="sales-bar-bg">
             <div class="sales-bar-fill" style="width: ${progress}%"></div>
           </div>
-          <div class="sales-text">🔥 ${soldCount} / ${totalCap} vendidos</div>
+          <div class="sales-text">${svgIcon('flame', { size: 14 })} ${soldCount} / ${totalCap} vendidos</div>
         </div>
 
         <div class="price-block">
@@ -334,14 +374,14 @@ function renderRewards() {
   if (!titleEl || !titleEl.classList.contains('section-title')) {
     const title = document.createElement('h2');
     title.className = 'section-title';
-    title.innerHTML = 'Premios y Promociones 🔥';
+    title.innerHTML = 'Premios y Promociones';
     container.parentNode.insertBefore(title, container);
   }
 
   CONFIG.rewards.forEach(r => {
     const card = `
       <div class="reward-card">
-        <div class="reward-icon">${r.icon}</div>
+        <div class="reward-icon">${iconForReward(r)}</div>
         <div class="reward-info">
           <h4>${r.title}</h4>
           <p>${r.description}</p>
