@@ -148,17 +148,40 @@ async function initDB() {
     }
   }
 
-  // Seed default admin (contraseña desde variable de entorno, con fallback solo para desarrollo local)
+  // ── Cuentas de admin (se crean/actualizan solas al iniciar) ──
+  // El "email" es solo el usuario de login. Las contraseñas salen de variables
+  // de entorno; si no están definidas se usa un fallback (cámbialo en producción).
   const bcrypt = require('bcryptjs');
-  const defaultAdminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@onfire.com';
-  const defaultAdminPass = bcrypt.hashSync(process.env.DEFAULT_ADMIN_PASSWORD || 'onfire2026', 10);
-  if (!process.env.DEFAULT_ADMIN_PASSWORD) {
-    console.warn('⚠️  DEFAULT_ADMIN_PASSWORD no definida — usando contraseña por defecto (cámbiala en producción).');
+  const ADMIN_ACCOUNTS = [
+    { name: 'General', email: 'admin@hellfire.com', password: process.env.GENERAL_ADMIN_PASSWORD || 'HellFire2026' },
+    { name: 'Andry', email: 'andry@hellfire.com', password: process.env.ANDRY_ADMIN_PASSWORD || 'Andry2026' },
+    { name: 'Osmar', email: 'osmar@hellfire.com', password: process.env.OSMAR_ADMIN_PASSWORD || 'Osmar2026' },
+  ];
+
+  const missingPass = ADMIN_ACCOUNTS.filter(a =>
+    (a.name === 'General' && !process.env.GENERAL_ADMIN_PASSWORD) ||
+    (a.name === 'Andry' && !process.env.ANDRY_ADMIN_PASSWORD) ||
+    (a.name === 'Osmar' && !process.env.OSMAR_ADMIN_PASSWORD)
+  );
+  if (missingPass.length) {
+    console.warn(`⚠️  Usando contraseñas por defecto para: ${missingPass.map(a => a.name).join(', ')} (defínelas en variables de entorno para producción).`);
   }
-  if (isProd) {
-    await pgPool.query('INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash', ['Admin', defaultAdminEmail, defaultAdminPass]);
-  } else {
-    await sqliteDb.run('INSERT OR REPLACE INTO admins (id, name, email, password_hash) SELECT id, ?, ?, ? FROM admins WHERE email = ? UNION SELECT NULL, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM admins WHERE email = ?)', ['Admin', defaultAdminEmail, defaultAdminPass, defaultAdminEmail, 'Admin', defaultAdminEmail, defaultAdminPass, defaultAdminEmail]);
+
+  for (const acc of ADMIN_ACCOUNTS) {
+    const hash = bcrypt.hashSync(acc.password, 10);
+    if (isProd) {
+      await pgPool.query(
+        'INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash',
+        [acc.name, acc.email, hash]
+      );
+    } else {
+      const existing = await sqliteDb.get('SELECT id FROM admins WHERE email = ?', [acc.email]);
+      if (existing) {
+        await sqliteDb.run('UPDATE admins SET name = ?, password_hash = ? WHERE email = ?', [acc.name, hash, acc.email]);
+      } else {
+        await sqliteDb.run('INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)', [acc.name, acc.email, hash]);
+      }
+    }
   }
 
   console.log(isProd ? '✅ PostgreSQL Database ready' : '✅ SQLite Database initialized successfully');

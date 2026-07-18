@@ -1,12 +1,12 @@
 /**
- * ARO Admin Seed Script
- * Crea/actualiza las cuentas de admin.
- * Las contraseñas se leen de variables de entorno (NO se guardan en el código).
+ * ARO Admin Seed Script (OPCIONAL)
  *
- * Variables esperadas (define las que quieras usar):
- *   ADMIN_ANDRY_PASSWORD
- *   ADMIN_OSMAR_PASSWORD
- *   ADMIN_RUSSEL_PASSWORD
+ * Ya no es necesario: las 3 cuentas de admin se crean solas al iniciar el
+ * servidor (ver db.js). Este script solo sirve si quieres forzar la
+ * creación/actualización manualmente.
+ *
+ * Las contraseñas se leen de variables de entorno:
+ *   GENERAL_ADMIN_PASSWORD, ANDRY_ADMIN_PASSWORD, OSMAR_ADMIN_PASSWORD
  *
  * Uso: node seed.js   (o en Railway: node aro-backend/seed.js)
  */
@@ -15,9 +15,9 @@ const { initDB, execute } = require('./db');
 require('dotenv').config();
 
 const ADMINS = [
-    { name: 'Andry Rabanales', email: 'andry_halo2@aro.com', envVar: 'ADMIN_ANDRY_PASSWORD' },
-    { name: 'Osmar Can', email: 'Osmar_Boy@aro.com', envVar: 'ADMIN_OSMAR_PASSWORD' },
-    { name: 'Russel Bonilla', email: 'Russel_Bonilla@aro.com', envVar: 'ADMIN_RUSSEL_PASSWORD' },
+    { name: 'General', email: 'admin@hellfire.com', envVar: 'GENERAL_ADMIN_PASSWORD' },
+    { name: 'Andry', email: 'andry@hellfire.com', envVar: 'ANDRY_ADMIN_PASSWORD' },
+    { name: 'Osmar', email: 'osmar@hellfire.com', envVar: 'OSMAR_ADMIN_PASSWORD' },
 ].map(a => ({ ...a, password: process.env[a.envVar] }));
 
 async function seed() {
@@ -30,7 +30,6 @@ async function seed() {
         let skipped = 0;
 
         for (const admin of ADMINS) {
-            // Sin contraseña en el entorno → no creamos la cuenta (nunca usamos una por defecto)
             if (!admin.password) {
                 console.warn(`⏭️  Omitido ${admin.email} — falta la variable de entorno ${admin.envVar}`);
                 skipped++;
@@ -58,9 +57,6 @@ async function seed() {
         }
 
         console.log(`\n✨ Seed completado. Gestionados: ${created} · Omitidos: ${skipped}`);
-        if (skipped > 0) {
-            console.log('   Define las variables de entorno faltantes y vuelve a correr el seed.');
-        }
     } catch (err) {
         console.error('❌ Error fatal en seed:', err.message);
     }
