@@ -137,7 +137,8 @@ async function initDB() {
       { "id": "2", "icon": "🍀", "title": "Sorteo Especial", "description": "10 personas que aparten y paguen hoy participan por una botella." },
       { "id": "3", "icon": "⏰", "title": "Acceso Botella", "description": "Se permite el ingreso de tu propia botella antes de las 11:00 PM." },
       { "id": "4", "icon": "📱", "title": "Descuento Social", "description": "Comparte en tus historias de IG y obtén un 10% OFF." }
-    ]`]
+    ]`],
+    ['visits', '0']
   ];
 
   for (const [key, value] of initConfig) {

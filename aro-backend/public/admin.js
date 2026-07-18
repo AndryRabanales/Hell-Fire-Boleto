@@ -465,50 +465,97 @@ function removeRewardRow(idx) {
 // DASHBOARD
 // ============================================================
 async function loadDashboard() {
-    // Always re-fetch to ensure we have the latest stats
+    // Re-descargamos reservas y visitas para tener los datos frescos
     await loadReservations();
+    await loadVisits();
     renderDashboardStats();
 }
 
+async function loadVisits() {
+    try {
+        const res = await fetch(`${API_URL}/api/stats`, { headers: apiHeaders() });
+        if (res.status === 401) return logout();
+        const data = await res.json();
+        const el = document.getElementById('stat-visits');
+        if (el) el.textContent = data.visits ?? 0;
+    } catch (err) {
+        /* silencioso */
+    }
+}
+
+// Orden cronológico de fases (por nombre) según la config
+function phaseOrderIndex() {
+    const order = {};
+    [...(dbConfig.phases || [])]
+        .sort((a, b) => new Date(a.endDate) - new Date(b.endDate))
+        .forEach((p, i) => { order[p.name] = i; });
+    return order;
+}
+
 function renderDashboardStats() {
+    const active = currentReservations.filter(r => r.status !== 'cancelled');
+
     let totalQty = 0;
     let totalRev = 0;
-    const breakDown = {};
-
-    dbConfig.tickets.forEach(t => breakDown[t.label] = { sold: 0, rev: 0 });
-
-    currentReservations.forEach(r => {
-        if (r.status !== 'cancelled') {
-            totalQty += r.quantity;
-            totalRev += r.quantity * r.price_each;
-            if (!breakDown[r.ticket_type]) breakDown[r.ticket_type] = { sold: 0, rev: 0 };
-            breakDown[r.ticket_type].sold += r.quantity;
-            breakDown[r.ticket_type].rev += r.quantity * r.price_each;
-        }
+    active.forEach(r => {
+        totalQty += r.quantity;
+        totalRev += r.quantity * r.price_each;
     });
 
     document.getElementById('stat-total-qty').textContent = totalQty;
-    document.getElementById('stat-total-res').textContent = currentReservations.length;
     document.getElementById('stat-total-rev').textContent = `$${totalRev.toFixed(0)}`;
 
-    const tbody = document.getElementById('stats-table-body');
-    tbody.innerHTML = '';
+    const order = phaseOrderIndex();
+    const orderOf = name => (name in order ? order[name] : 99);
 
-    if (Object.keys(breakDown).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay datos aún</td></tr>';
-        return;
+    // ── Apartados por Fase ──
+    const byPhase = {};
+    active.forEach(r => {
+        const f = r.fase || '—';
+        if (!byPhase[f]) byPhase[f] = { count: 0, rev: 0 };
+        byPhase[f].count += r.quantity;
+        byPhase[f].rev += r.quantity * r.price_each;
+    });
+
+    const phaseBody = document.getElementById('phase-table-body');
+    const phaseRows = Object.entries(byPhase).sort((a, b) => orderOf(a[0]) - orderOf(b[0]));
+    if (phaseRows.length === 0) {
+        phaseBody.innerHTML = '<tr><td colspan="3" class="text-center">Aún no hay apartados</td></tr>';
+    } else {
+        phaseBody.innerHTML = phaseRows.map(([fase, v]) => `
+            <tr>
+                <td><strong>${fase}</strong></td>
+                <td>${v.count}</td>
+                <td style="color:var(--green)">$${v.rev.toFixed(0)}</td>
+            </tr>
+        `).join('');
     }
 
-    for (const [tType, val] of Object.entries(breakDown)) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${tType}</strong></td>
-            <td><span class="status-badge status-confirmed">Activo</span></td>
-            <td>Online</td>
-            <td>${val.sold} uds.</td>
-            <td style="color:var(--green)">$${val.rev.toFixed(0)}</td>
-        `;
-        tbody.appendChild(tr);
+    // ── Desglose por Boleto y Fase ──
+    const combo = {};
+    active.forEach(r => {
+        const key = `${r.ticket_type}|${r.fase || '—'}`;
+        if (!combo[key]) combo[key] = { ticket: r.ticket_type, fase: r.fase || '—', price: r.price_each, count: 0, rev: 0 };
+        combo[key].count += r.quantity;
+        combo[key].rev += r.quantity * r.price_each;
+    });
+
+    const breakdownBody = document.getElementById('breakdown-table-body');
+    const comboRows = Object.values(combo).sort((a, b) =>
+        a.ticket.localeCompare(b.ticket) || orderOf(a.fase) - orderOf(b.fase)
+    );
+    if (comboRows.length === 0) {
+        breakdownBody.innerHTML = '<tr><td colspan="5" class="text-center">Aún no hay apartados</td></tr>';
+    } else {
+        breakdownBody.innerHTML = comboRows.map(c => `
+            <tr>
+                <td><strong>${c.ticket}</strong></td>
+                <td>${c.fase}</td>
+                <td>$${c.price}</td>
+                <td>${c.count}</td>
+                <td style="color:var(--green)">$${c.rev.toFixed(0)}</td>
+            </tr>
+        `).join('');
     }
 }
 
@@ -697,8 +744,8 @@ async function handleLogin() {
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('app-container').style.display = 'flex';
 
-        loadConfig();
-        loadReservations();
+        await loadConfig();
+        loadDashboard();
         showToast('¡Bienvenido, ' + data.name + '!');
     } catch (err) {
         errorDiv.innerText = err.message;
@@ -732,11 +779,13 @@ function showToast(msg, type = 'success') {
 }
 
 // INIT
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     if (sessionStorage.getItem('aro_admin_token')) {
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('app-container').style.display = 'flex';
-        loadConfig();
-        loadReservations();
+        const savedName = sessionStorage.getItem('aro_admin_name');
+        if (savedName) document.getElementById('admin-name').innerText = savedName;
+        await loadConfig();
+        loadDashboard();
     }
 });

@@ -570,6 +570,12 @@ function startElegantConfetti() {
    INIT
 ============================================================ */
 async function init() {
+  // Contar la visita una sola vez por sesión de navegador
+  if (!sessionStorage.getItem('hf_visited')) {
+    sessionStorage.setItem('hf_visited', '1');
+    fetch(`${API_URL}/api/stats/visit`, { method: 'POST' }).catch(() => { });
+  }
+
   await loadConfigFromAPI();
   initState();
   renderAllCards();

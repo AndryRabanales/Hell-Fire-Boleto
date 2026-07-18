@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HELL FIRE — Panel de Administración</title>
-    <link rel="stylesheet" href="admin.css?v=3">
+    <link rel="stylesheet" href="admin.css?v=4">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 </head>
@@ -67,62 +67,51 @@
                         <button class="btn-secondary" onclick="loadDashboard()">Actualizar 🔄</button>
                     </header>
                     <div class="stats-grid">
-                        <div class="stat-card" id="card-qty" onclick="toggleFlip(this)">
-                            <div class="stat-card-inner">
-                                <div class="stat-card-front">
-                                    <div class="stat-title">Boletos Apartados</div>
-                                    <div class="stat-value" id="stat-total-qty">0</div>
-                                </div>
-                                <div class="stat-card-back" onclick="event.stopPropagation()">
-                                    <h4>Información</h4>
-                                    <textarea id="desc-qty" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
-                                    <button class="btn-save-metric" onclick="saveMetricDescription('qty')">Guardar 💾</button>
-                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
-                                </div>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Visitas a la página</div>
+                            <div class="stat-value" id="stat-visits">0</div>
                         </div>
-                        <div class="stat-card" id="card-rev" onclick="toggleFlip(this)">
-                            <div class="stat-card-inner">
-                                <div class="stat-card-front">
-                                    <div class="stat-title">Ingresos Potenciales 💰</div>
-                                    <div class="stat-value" id="stat-total-rev">$0</div>
-                                </div>
-                                <div class="stat-card-back" onclick="event.stopPropagation()">
-                                    <h4>Información</h4>
-                                    <textarea id="desc-rev" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
-                                    <button class="btn-save-metric" onclick="saveMetricDescription('rev')">Guardar 💾</button>
-                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
-                                </div>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Apartados (click en Apartar)</div>
+                            <div class="stat-value" id="stat-total-qty">0</div>
                         </div>
-                        <div class="stat-card" id="card-res" onclick="toggleFlip(this)">
-                            <div class="stat-card-inner">
-                                <div class="stat-card-front">
-                                    <div class="stat-title">Reservas Totales</div>
-                                    <div class="stat-value" id="stat-total-res">0</div>
-                                </div>
-                                <div class="stat-card-back" onclick="event.stopPropagation()">
-                                    <h4>Información</h4>
-                                    <textarea id="desc-res" placeholder="Agrega una descripción..." onfocus="this.parentElement.parentElement.parentElement.classList.add('editing')"></textarea>
-                                    <button class="btn-save-metric" onclick="saveMetricDescription('res')">Guardar 💾</button>
-                                    <button class="btn-ghost" style="margin-top:5px; padding:4px;" onclick="this.parentElement.parentElement.parentElement.classList.remove('flipped')">Voltear ↩️</button>
-                                </div>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Ingresos Potenciales</div>
+                            <div class="stat-value" id="stat-total-rev">$0</div>
                         </div>
                     </div>
-                    <h3>Desglose por Categoría</h3>
+
+                    <h3>Apartados por Fase</h3>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Categoría</th>
-                                    <th>Estado</th>
-                                    <th>Operaciones</th>
-                                    <th>Boletos Sold</th>
-                                    <th>Ingreso Estimado</th>
+                                    <th>Fase</th>
+                                    <th>Apartados</th>
+                                    <th>Ingreso</th>
                                 </tr>
                             </thead>
-                            <tbody id="stats-table-body">
+                            <tbody id="phase-table-body">
+                                <tr>
+                                    <td colspan="3" class="text-center">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 style="margin-top:30px;">Desglose por Boleto y Fase</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Boleto</th>
+                                    <th>Fase</th>
+                                    <th>Precio</th>
+                                    <th>Apartados</th>
+                                    <th>Ingreso</th>
+                                </tr>
+                            </thead>
+                            <tbody id="breakdown-table-body">
                                 <tr>
                                     <td colspan="5" class="text-center">Cargando...</td>
                                 </tr>
@@ -289,7 +278,7 @@
     </div>
 
     <div id="toast-container"></div>
-    <script src="admin.js?v=5"></script>
+    <script src="admin.js?v=6"></script>
 
 </body>
 
