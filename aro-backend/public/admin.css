@@ -1239,26 +1239,229 @@ tbody tr:hover {
 
 /* Responsive */
 @media(max-width:768px) {
+
+    /* ── Sidebar → barra superior compacta ── */
+    .app-layout {
+        flex-direction: column;
+    }
+
     .sidebar {
-        width: 70px;
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        flex-direction: row;
+        align-items: center;
+        padding: 6px 10px;
+        gap: 8px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
     }
 
-    .sidebar-brand,
-    .nav-item span,
-    .nav-btn span,
-    .btn-logout span,
-    .nav-divider {
-        display: none;
+    .sidebar-header {
+        padding: 0;
+        border: none;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        flex-shrink: 0;
     }
 
+    .sidebar-header h3 {
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .sidebar-header p {
+        font-size: 9px;
+        margin: 0;
+    }
+
+    .sidebar-nav {
+        flex: 1;
+        flex-direction: row;
+        padding: 0;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .nav-item,
+    .nav-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 8px;
+        gap: 6px;
+    }
+
+    .btn-logout {
+        padding: 6px 8px;
+        font-size: 10px;
+        flex-shrink: 0;
+    }
+
+    /* ── Contenido ── */
     .main-content {
-        margin-left: 70px;
-        padding: 24px;
+        margin-left: 0;
+        margin-top: 48px;
+        padding: 12px 10px 24px;
     }
 
+    .section-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+        font-size: 1rem;
+    }
+
+    .section-header .btn-secondary,
+    .section-header .btn-primary {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    h3 {
+        font-size: 0.85rem;
+        margin: 14px 0 8px;
+    }
+
+    /* ── Stat cards: 3 en fila, mini ── */
     .stats-grid,
     .cards-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        margin-bottom: 14px;
+    }
+
+    .stat-card {
+        padding: 10px 8px;
+        gap: 5px;
+        border-radius: 10px;
+    }
+
+    .stat-title {
+        font-size: 8.5px;
+        line-height: 1.25;
+    }
+
+    .stat-value {
+        font-size: 1.15rem;
+    }
+
+    /* ── Tablas compactas con scroll horizontal ── */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 10px;
+    }
+
+    th {
+        padding: 6px 8px;
+        font-size: 8.5px;
+        letter-spacing: .3px;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 6px 8px;
+        font-size: 10.5px;
+        white-space: nowrap;
+    }
+
+    /* Filtros de reservas */
+    .section-header>div {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .input-light,
+    select.input-light {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .status-select {
+        padding: 4px 6px;
+        font-size: 10px;
+    }
+
+    td .input-light {
+        min-width: 90px;
+    }
+
+    td .btn-danger {
+        padding: 3px 6px !important;
+        font-size: 10px !important;
+    }
+
+    /* ── Editor visual apilado y compacto ── */
+    .editor-split {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .editor-sidebar {
+        width: 100%;
+        max-height: none;
+        padding: 12px;
+    }
+
+    .editor-sidebar-header h2 {
+        font-size: 0.95rem;
+    }
+
+    .editor-sidebar-header p {
+        font-size: 10px;
+    }
+
+    .editor-tabs {
+        gap: 4px;
+    }
+
+    .tab-btn {
+        padding: 6px 8px;
+        font-size: 10.5px;
+    }
+
+    .editor-form-group label {
+        font-size: 10px;
+    }
+
+    .editor-input {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .editor-preview {
+        min-height: 420px;
+    }
+
+    .preview-toolbar {
+        padding: 6px 10px;
+        font-size: 10px;
+    }
+
+    /* ── Modal ── */
+    .modal {
+        padding: 18px 14px;
+        border-radius: 16px;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    .modal h3 {
+        font-size: 1.05rem;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+    }
+
+    /* ── Login ── */
+    .login-card {
+        padding: 24px 18px;
     }
 }
 
