@@ -1654,50 +1654,50 @@ footer {
 
   /* ── Bloque FASE ACTUAL + cronómetro (más angosto y bajo) ── */
   .phase-section {
-    padding: 4px 22px 6px;
+    padding: 4px 34px 6px;
   }
 
   .phase-container {
-    padding: 9px 10px 8px;
+    padding: 8px 8px 7px;
     margin-bottom: 0;
-    border-radius: 13px;
+    border-radius: 12px;
   }
 
   .phase-container::after {
-    inset: 5px;
+    inset: 4px;
   }
 
   .phase-current-label {
-    margin-bottom: 7px;
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+    margin-bottom: 6px;
+    font-size: 0.56rem;
+    letter-spacing: 0.12em;
   }
 
   .countdown-grid {
-    gap: 5px;
-    margin-bottom: 6px;
+    gap: 4px;
+    margin-bottom: 5px;
   }
 
   .countdown-item {
     min-width: 0;
     flex: 1;
-    padding: 5px 2px;
-    border-radius: 10px;
+    padding: 4px 1px;
+    border-radius: 9px;
     border-width: 1px;
   }
 
   .countdown-value {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .countdown-label {
-    font-size: 0.45rem;
-    margin-top: 2px;
-    letter-spacing: 0.05em;
+    font-size: 0.42rem;
+    margin-top: 1px;
+    letter-spacing: 0.04em;
   }
 
   .phase-urgency {
-    font-size: 0.62rem;
+    font-size: 0.58rem;
   }
 
   .phase-info-container {
@@ -1716,110 +1716,125 @@ footer {
   }
 
   .ticket-card {
-    padding: 11px 9px;
-    border-radius: 13px;
+    padding: 9px 8px;
+    border-radius: 12px;
   }
 
   .card-icon {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .card-icon svg {
-    width: 22px;
-    height: 22px;
+    width: 19px;
+    height: 19px;
   }
 
   .card-badge {
-    top: 8px;
-    right: 8px;
-    padding: 2px 6px;
-    font-size: 7px;
+    top: 7px;
+    right: 7px;
+    padding: 2px 5px;
+    font-size: 6px;
   }
 
   .card-title {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
 
   .card-subtitle {
-    font-size: 9.5px;
-    margin-bottom: 8px;
-    min-height: 24px;
-    line-height: 1.3;
+    font-size: 8.5px;
+    margin-bottom: 6px;
+    min-height: 20px;
+    line-height: 1.25;
   }
 
   .sales-counter {
-    margin-bottom: 9px;
+    margin-bottom: 7px;
   }
 
   .sales-bar-bg {
-    height: 6px;
-    margin-bottom: 6px;
+    height: 5px;
+    margin-bottom: 4px;
   }
 
   .sales-text {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .price-block {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .price-current {
-    font-size: 1.45rem;
-    margin-bottom: 5px;
+    font-size: 1.25rem;
+    margin-bottom: 4px;
   }
 
   .price-phase-label {
-    font-size: 9px;
-    padding: 2px 7px;
+    font-size: 8px;
+    padding: 2px 6px;
   }
 
   .btn-buy {
-    padding: 9px 5px;
-    font-size: 0.7rem;
+    padding: 8px 4px;
+    font-size: 0.66rem;
     gap: 4px;
     white-space: nowrap;
   }
 
   .btn-ic {
-    width: 13px;
-    height: 13px;
+    width: 12px;
+    height: 12px;
   }
 
-  /* ── Secciones inferiores ── */
+  /* ── Premios y promociones (cuadro y fuentes más chicos) ── */
   .rewards-section {
-    padding: 10px 0 20px;
+    padding: 8px 0 18px;
+  }
+
+  .section-badge {
+    font-size: 0.6rem;
+    padding: 4px 12px;
+    letter-spacing: 0.14em;
   }
 
   .rewards-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 7px;
     padding: 0 4px;
   }
 
   .reward-card {
-    padding: 11px 10px;
-    gap: 8px;
+    padding: 9px 8px;
+    gap: 6px;
     flex-direction: column;
     text-align: center;
+    border-radius: 12px;
   }
 
   .reward-icon {
-    min-width: 36px;
-    height: 36px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+
+  .reward-icon svg {
+    width: 18px;
+    height: 18px;
   }
 
   .reward-info h4 {
-    font-size: 0.9rem;
+    font-size: 0.78rem;
+    margin-bottom: 2px;
   }
 
   .reward-info p {
-    font-size: 0.78rem;
+    font-size: 0.68rem;
+    line-height: 1.25;
   }
 
   .section-title {
-    font-size: 1.15rem;
-    margin-bottom: 12px;
+    font-size: 1.05rem;
+    margin-bottom: 10px;
   }
 
   .location-section {
