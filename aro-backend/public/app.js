@@ -154,7 +154,7 @@ async function cargarVentas() {
       el.innerHTML =
         '<div class="tier__stock-bar"><i style="width:' + pct + '%"></i></div>' +
         '<div class="tier__stock-txt">' +
-          '<span class="tier__stock-sold">🔥 ' + c.sold + ' vendidos</span>' +
+          '<span class="tier__stock-sold">' + c.sold + ' vendidos</span>' +
           '<span class="tier__stock-left">' + c.left + ' disponibles</span>' +
         '</div>';
       el.classList.add('is-shown');
