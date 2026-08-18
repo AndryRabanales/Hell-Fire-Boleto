@@ -139,7 +139,8 @@ async function initDB() {
       { "id": "4", "icon": "📱", "title": "Descuento Social", "description": "Comparte en tus historias de IG y obtén un 10% OFF." }
     ]`],
     ['visits', '0'],
-    ['ventas_boost', '{"general":0,"vip":0,"ultra":0}']
+    ['ventas_boost', '{"general":0,"vip":0,"ultra":0}'],
+    ['ventas_cupos', '{"general":1500,"vip":700,"ultra":150}']
   ];
 
   for (const [key, value] of initConfig) {

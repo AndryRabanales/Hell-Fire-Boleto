@@ -82,15 +82,19 @@ async function loadDashboard() {
     renderClicks();
 }
 
-// Rellena los campos de ajuste desde la config (fuente confiable del boost)
+// Rellena los campos de ajuste y de cupos desde la config
 async function loadBoostInputs() {
     try {
         const r = await fetch(`${API_URL}/api/config`);
         const c = await r.json();
         const b = c.ventas_boost || {};
+        const q = c.ventas_cupos || {};
+        const def = { general: 1500, vip: 700, ultra: 150 };
         ['general', 'vip', 'ultra'].forEach((cat) => {
-            const inp = document.getElementById(`boost-${cat}`);
-            if (inp && document.activeElement !== inp) inp.value = b[cat] ?? 0;
+            const bi = document.getElementById(`boost-${cat}`);
+            if (bi && document.activeElement !== bi) bi.value = b[cat] ?? 0;
+            const ci = document.getElementById(`cupo-${cat}`);
+            if (ci && document.activeElement !== ci) ci.value = q[cat] ?? def[cat];
         });
     } catch (e) { /* silencioso */ }
 }
@@ -168,6 +172,28 @@ async function loadVentasFresh() {
     window.__ventasFresh = true;
     await loadVentas();
     window.__ventasFresh = orig;
+}
+
+// Guardar la capacidad (cupos) por categoría
+async function saveCupos() {
+    const value = {
+        general: parseInt(document.getElementById('cupo-general').value) || 0,
+        vip: parseInt(document.getElementById('cupo-vip').value) || 0,
+        ultra: parseInt(document.getElementById('cupo-ultra').value) || 0,
+    };
+    try {
+        const res = await fetch(`${API_URL}/api/config/ventas_cupos`, {
+            method: 'PUT',
+            headers: apiHeaders(),
+            body: JSON.stringify({ value }),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        if (!res.ok) throw new Error();
+        showToast('Cupos guardados');
+        await loadVentasFresh();
+    } catch (err) {
+        showToast('Error al guardar los cupos', 'error');
+    }
 }
 
 // Visitas a la página

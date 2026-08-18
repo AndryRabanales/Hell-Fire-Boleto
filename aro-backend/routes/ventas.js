@@ -12,22 +12,24 @@ const { getRow } = require('../db');
 
 const router = express.Router();
 
-// Lee el ajuste manual (compras extra) desde la config de NUESTRA base
-async function getBoost() {
-    const base = { general: 0, vip: 0, ultra: 0 };
+// Lee un objeto {general,vip,ultra} de una clave de config, con valores por defecto
+async function getConfigNums(key, def) {
     try {
-        const row = await getRow("SELECT value FROM config WHERE key = 'ventas_boost'");
+        const row = await getRow('SELECT value FROM config WHERE key = $1', [key]);
         if (row) {
             const b = JSON.parse(row.value);
             return {
-                general: parseInt(b.general) || 0,
-                vip: parseInt(b.vip) || 0,
-                ultra: parseInt(b.ultra) || 0,
+                general: Number.isFinite(parseInt(b.general)) ? parseInt(b.general) : def.general,
+                vip: Number.isFinite(parseInt(b.vip)) ? parseInt(b.vip) : def.vip,
+                ultra: Number.isFinite(parseInt(b.ultra)) ? parseInt(b.ultra) : def.ultra,
             };
         }
-    } catch (e) { /* usa base */ }
-    return base;
+    } catch (e) { /* usa def */ }
+    return { ...def };
 }
+
+const getBoost = () => getConfigNums('ventas_boost', { general: 0, vip: 0, ultra: 0 });
+const getCupos = () => getConfigNums('ventas_cupos', CUPOS);
 
 let ventasPool = null;
 function getVentasPool() {
@@ -85,15 +87,17 @@ router.get('/', async (req, res) => {
             else general += row.n;                        // "Uady", "Externo"
         });
 
-        // Ajuste manual (compras extra): mostrado = reales + extra
+        // Ajuste manual (compras extra) y cupos editables desde el panel
         const boost = await getBoost();
+        const cupos = await getCupos();
         const mk = (real, extra, cap) => {
             const sold = real + extra;
             return { sold, real, boost: extra, cap, left: Math.max(0, cap - sold) };
         };
-        const g = mk(general, boost.general, CUPOS.general);
-        const vp = mk(vip, boost.vip, CUPOS.vip);
-        const u = mk(ultra, boost.ultra, CUPOS.ultra);
+        const g = mk(general, boost.general, cupos.general);
+        const vp = mk(vip, boost.vip, cupos.vip);
+        const u = mk(ultra, boost.ultra, cupos.ultra);
+        const capTotal = cupos.general + cupos.vip + cupos.ultra;
 
         const data = {
             available: true,
@@ -104,8 +108,8 @@ router.get('/', async (req, res) => {
                 sold: g.sold + vp.sold + u.sold,
                 real: general + vip + ultra,
                 boost: boost.general + boost.vip + boost.ultra,
-                cap: CUPOS.general + CUPOS.vip + CUPOS.ultra,
-                left: Math.max(0, (CUPOS.general + CUPOS.vip + CUPOS.ultra) - (g.sold + vp.sold + u.sold)),
+                cap: capTotal,
+                left: Math.max(0, capTotal - (g.sold + vp.sold + u.sold)),
             },
             updatedAt: new Date().toISOString(),
         };
