@@ -26,21 +26,21 @@ const CONFIG = {
       name: 'Venta regular',
       end: '2026-09-17T00:00:00-06:00',
       date: 'Hasta 16 Sep',
-      prices: { uady: 200, ext: 225, vip: 425, ultra: 900 },
+      prices: { uady: 200, ext: 225, vip: 425, ultra: 950 },
     },
     {
       // Última llamada: 17 sep — arranca FASE 4 el 17 oct 00:00
       name: 'Última llamada',
       end: '2026-10-17T00:00:00-06:00',
       date: 'Hasta 16 Oct',
-      prices: { uady: 275, ext: 300, vip: 520, ultra: 900 },
+      prices: { uady: 275, ext: 300, vip: 520, ultra: 1000 },
     },
     {
       // Mero día: 17 oct — hasta el evento (31 oct)
       name: 'Mero día',
       end: '2026-10-31T23:59:59-06:00',
       date: '31 Oct',
-      prices: { uady: 330, ext: 355, vip: 575, ultra: 900 },
+      prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
     },
   ],
 
