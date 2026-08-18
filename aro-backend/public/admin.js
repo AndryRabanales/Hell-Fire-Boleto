@@ -7,7 +7,7 @@ const API_URL = '';
 let currentReservations = [];
 
 // Orden cronológico de las fases (coincide con la página nueva)
-const PHASE_ORDER = ['Preventa', 'Venta regular', 'Última llamada', 'Fase 4', 'Mero día'];
+const PHASE_ORDER = ['Fase 1', 'Fase 2', 'Fase 3', 'Fase 4'];
 const orderOf = (name) => {
     const i = PHASE_ORDER.indexOf(name);
     return i === -1 ? 99 : i;
@@ -100,7 +100,7 @@ async function loadBoostInputs() {
 async function loadVentas() {
     const badge = document.getElementById('ventas-estado');
     try {
-        const fase = document.getElementById('fase-select')?.value || 'Preventa';
+        const fase = document.getElementById('fase-select')?.value || 'Fase 1';
         let url = `${API_URL}/api/ventas?fase=` + encodeURIComponent(fase);
         if (window.__ventasFresh) url += '&fresh=1';
         const res = await fetch(url);
@@ -174,7 +174,7 @@ async function loadVentasFresh() {
 }
 
 // ── Cupos por fase y tipo ──
-const PHASES = ['Preventa', 'Venta regular', 'Última llamada', 'Fase 4', 'Mero día'];
+const PHASES = ['Fase 1', 'Fase 2', 'Fase 3', 'Fase 4'];
 const TIPOS = [['general', 'General'], ['vip', 'VIP'], ['ultra', 'Ultra VIP']];
 
 function renderCuposEditor(cuposFase) {

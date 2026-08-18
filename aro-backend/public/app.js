@@ -15,40 +15,32 @@ const CONFIG = {
   // Cambia las fechas y los precios aquí y toda la página se actualiza.
   phases: [
     {
-      // Preventa: activa hasta que arranca la FASE 2 (2 sep 00:00)
-      name: 'Preventa',
+      // Fase 1: activa hasta que arranca la Fase 2 (2 sep 00:00)
+      name: 'Fase 1',
       end: '2026-09-02T00:00:00-06:00',
       date: 'Hasta 1 Sep',
       prices: { uady: 150, ext: 175, vip: 350, ultra: 900 },
     },
     {
-      // Venta regular: 2 sep — arranca FASE 3 el 17 sep 00:00
-      name: 'Venta regular',
+      // Fase 2: 2 sep — arranca Fase 3 el 17 sep 00:00
+      name: 'Fase 2',
       end: '2026-09-17T00:00:00-06:00',
       date: 'Hasta 16 Sep',
       prices: { uady: 200, ext: 225, vip: 425, ultra: 950 },
     },
     {
-      // Última llamada: 17 sep — arranca FASE 4 el 17 oct 00:00
-      name: 'Última llamada',
+      // Fase 3: 17 sep — arranca Fase 4 el 17 oct 00:00
+      name: 'Fase 3',
       end: '2026-10-17T00:00:00-06:00',
       date: 'Hasta 16 Oct',
       prices: { uady: 275, ext: 300, vip: 520, ultra: 1000 },
     },
     {
-      // Fase 4: 17 oct — arranca el Mero día el 31 oct 00:00
+      // Fase 4 (última): 17 oct — cierra ventas el 31 oct a las 8pm (mero día)
       name: 'Fase 4',
-      end: '2026-10-31T00:00:00-06:00',
-      date: 'Hasta 30 Oct',
-      prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
-    },
-    {
-      // Mero día (FASE 5): 31 oct 00:00 — día del evento (precio final)
-      // OJO: precios placeholder (iguales a Fase 4) hasta recibir los reales.
-      name: 'Mero día',
-      end: '2026-11-01T06:00:00-06:00',
-      date: '31 Oct',
-      prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
+      end: '2026-10-31T20:00:00-06:00',
+      date: 'Cierra 31 Oct · 8pm',
+      prices: { uady: 330, ext: 355, vip: 575, ultra: 1000 },
     },
   ],
 
@@ -268,16 +260,19 @@ function tick() {
 
     const total = CONFIG.phases.length;
     const idx = CONFIG.phases.indexOf(phase) + 1;
+    const esUltima = idx === total;
     document.getElementById('phase-label').textContent =
-      'Fase ' + idx + '/' + total + ' · ' + phase.name + ' termina en';
+      phase.name + ' de ' + total + ' · ' + (esUltima ? 'cierra en' : 'termina en');
 
     const nota = document.getElementById('fase-nota');
     if (nota) {
+      const cierre = esUltima
+        ? 'Es la <b>última fase</b>: las ventas cierran el 31 de octubre a las 8pm.'
+        : 'Cuando se agota el cupo o termina el cronómetro, el precio sube.';
       nota.innerHTML =
-        '<span class="fase-nota__tag">Fase ' + idx + ' de ' + total + '</span>' +
+        '<span class="fase-nota__tag">' + phase.name + ' de ' + total + '</span>' +
         '<span class="fase-nota__txt">Vendemos en <b>' + total + ' fases</b> y cada una libera un <b>cupo limitado</b> ' +
-        'de boletos por tipo. Ahora estás en la <b>' + phase.name + '</b>. Cuando se agota el cupo o termina el ' +
-        'cronómetro, el precio sube.</span>';
+        'de boletos por tipo. ' + cierre + '</span>';
     }
 
     revelar();
