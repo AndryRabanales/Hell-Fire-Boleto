@@ -66,7 +66,23 @@ router.get('/inspect', async (req, res) => {
             }
         }
 
-        res.json({ schema, counts });
+        // Diagnóstico específico de ventas (solo tipos y conteos, sin datos personales)
+        const diag = {};
+        try {
+            const tipos = await pool.query('SELECT id, name, price_cents, is_vip, active, needs_faculty FROM ticket_types ORDER BY id');
+            diag.ticket_types = tipos.rows;
+        } catch (e) { diag.ticket_types = 'error: ' + e.message; }
+        try {
+            const bd = await pool.query(`
+                SELECT type_name, type_is_vip, status, es_cortesia, COUNT(*)::int AS n
+                FROM tickets
+                GROUP BY type_name, type_is_vip, status, es_cortesia
+                ORDER BY type_name, status
+            `);
+            diag.tickets_breakdown = bd.rows;
+        } catch (e) { diag.tickets_breakdown = 'error: ' + e.message; }
+
+        res.json({ schema, counts, diag });
     } catch (err) {
         console.error('Ventas inspect error:', err.message);
         res.status(500).json({ error: err.message });
