@@ -36,7 +36,7 @@ router.put('/:key', auth, async (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
-    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions'];
+    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost'];
     if (!allowedKeys.includes(key)) {
         return res.status(400).json({ error: 'Clave de configuración inválida' });
     }

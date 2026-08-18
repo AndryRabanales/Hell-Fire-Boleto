@@ -138,7 +138,8 @@ async function initDB() {
       { "id": "3", "icon": "⏰", "title": "Acceso Botella", "description": "Se permite el ingreso de tu propia botella antes de las 11:00 PM." },
       { "id": "4", "icon": "📱", "title": "Descuento Social", "description": "Comparte en tus historias de IG y obtén un 10% OFF." }
     ]`],
-    ['visits', '0']
+    ['visits', '0'],
+    ['ventas_boost', '{"general":0,"vip":0,"ultra":0}']
   ];
 
   for (const [key, value] of initConfig) {

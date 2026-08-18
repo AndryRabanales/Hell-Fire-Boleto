@@ -78,15 +78,29 @@ function apiHeaders() {
 
 /* ── Dashboard ── */
 async function loadDashboard() {
-    await Promise.all([loadVentas(), loadVisits(), loadReservations()]);
+    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs()]);
     renderClicks();
+}
+
+// Rellena los campos de ajuste desde la config (fuente confiable del boost)
+async function loadBoostInputs() {
+    try {
+        const r = await fetch(`${API_URL}/api/config`);
+        const c = await r.json();
+        const b = c.ventas_boost || {};
+        ['general', 'vip', 'ultra'].forEach((cat) => {
+            const inp = document.getElementById(`boost-${cat}`);
+            if (inp && document.activeElement !== inp) inp.value = b[cat] ?? 0;
+        });
+    } catch (e) { /* silencioso */ }
 }
 
 // Ventas reales del generador
 async function loadVentas() {
     const badge = document.getElementById('ventas-estado');
     try {
-        const res = await fetch(`${API_URL}/api/ventas`);
+        const url = `${API_URL}/api/ventas` + (window.__ventasFresh ? '?fresh=1' : '');
+        const res = await fetch(url);
         const v = await res.json();
 
         if (!v || !v.available) {
@@ -106,6 +120,11 @@ async function loadVentas() {
             document.getElementById(`v-${cat}-cap`).textContent = c.cap;
             const pct = c.cap ? Math.min(100, Math.round((c.sold / c.cap) * 100)) : 0;
             document.getElementById(`v-${cat}-bar`).style.width = pct + '%';
+            const det = document.getElementById(`v-${cat}-detail`);
+            if (det) det.textContent = `reales ${c.real ?? c.sold} · extra ${c.boost ?? 0}`;
+            // Rellena el input de ajuste (si el usuario no lo está editando)
+            const inp = document.getElementById(`boost-${cat}`);
+            if (inp && document.activeElement !== inp) inp.value = c.boost ?? 0;
         });
 
         document.getElementById('v-total-sold').textContent = v.total.sold;
@@ -119,6 +138,36 @@ async function loadVentas() {
         badge.textContent = 'Error al leer ventas';
         badge.classList.add('is-off');
     }
+}
+
+// Guardar el ajuste manual (compras extra)
+async function saveBoost() {
+    const value = {
+        general: parseInt(document.getElementById('boost-general').value) || 0,
+        vip: parseInt(document.getElementById('boost-vip').value) || 0,
+        ultra: parseInt(document.getElementById('boost-ultra').value) || 0,
+    };
+    try {
+        const res = await fetch(`${API_URL}/api/config/ventas_boost`, {
+            method: 'PUT',
+            headers: apiHeaders(),
+            body: JSON.stringify({ value }),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        if (!res.ok) throw new Error();
+        showToast('Ajuste guardado');
+        // Refresca las ventas saltando la caché para ver el efecto al instante
+        await loadVentasFresh();
+    } catch (err) {
+        showToast('Error al guardar el ajuste', 'error');
+    }
+}
+
+async function loadVentasFresh() {
+    const orig = window.__ventasFresh;
+    window.__ventasFresh = true;
+    await loadVentas();
+    window.__ventasFresh = orig;
 }
 
 // Visitas a la página

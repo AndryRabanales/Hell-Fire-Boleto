@@ -529,3 +529,29 @@ td.muted,
         font-size: 12px;
     }
 }
+
+/* ── Ajuste manual de compras extra ── */
+.stat-card__detail {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+    min-height: 12px;
+}
+.boost-grid {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.boost-item {
+    flex: 1;
+    min-width: 110px;
+}
+.boost-item .field {
+    width: 100%;
+    margin: 0;
+}
+@media (max-width: 620px) {
+    .boost-grid .btn-primary { width: 100%; }
+}

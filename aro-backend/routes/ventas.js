@@ -8,8 +8,26 @@
 const express = require('express');
 const { Pool } = require('pg');
 const auth = require('../middleware/auth');
+const { getRow } = require('../db');
 
 const router = express.Router();
+
+// Lee el ajuste manual (compras extra) desde la config de NUESTRA base
+async function getBoost() {
+    const base = { general: 0, vip: 0, ultra: 0 };
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'ventas_boost'");
+        if (row) {
+            const b = JSON.parse(row.value);
+            return {
+                general: parseInt(b.general) || 0,
+                vip: parseInt(b.vip) || 0,
+                ultra: parseInt(b.ultra) || 0,
+            };
+        }
+    } catch (e) { /* usa base */ }
+    return base;
+}
 
 let ventasPool = null;
 function getVentasPool() {
@@ -49,7 +67,8 @@ router.get('/', async (req, res) => {
     if (!pool) return res.json({ available: false });
 
     const now = Date.now();
-    if (ventasCache.data && now - ventasCache.ts < VENTAS_TTL) {
+    const fresh = req.query.fresh === '1';
+    if (!fresh && ventasCache.data && now - ventasCache.ts < VENTAS_TTL) {
         return res.json(ventasCache.data);
     }
 
@@ -66,13 +85,28 @@ router.get('/', async (req, res) => {
             else general += row.n;                        // "Uady", "Externo"
         });
 
-        const mk = (sold, cap) => ({ sold, cap, left: Math.max(0, cap - sold) });
+        // Ajuste manual (compras extra): mostrado = reales + extra
+        const boost = await getBoost();
+        const mk = (real, extra, cap) => {
+            const sold = real + extra;
+            return { sold, real, boost: extra, cap, left: Math.max(0, cap - sold) };
+        };
+        const g = mk(general, boost.general, CUPOS.general);
+        const vp = mk(vip, boost.vip, CUPOS.vip);
+        const u = mk(ultra, boost.ultra, CUPOS.ultra);
+
         const data = {
             available: true,
-            general: mk(general, CUPOS.general),
-            vip: mk(vip, CUPOS.vip),
-            ultra: mk(ultra, CUPOS.ultra),
-            total: mk(general + vip + ultra, CUPOS.general + CUPOS.vip + CUPOS.ultra),
+            general: g,
+            vip: vp,
+            ultra: u,
+            total: {
+                sold: g.sold + vp.sold + u.sold,
+                real: general + vip + ultra,
+                boost: boost.general + boost.vip + boost.ultra,
+                cap: CUPOS.general + CUPOS.vip + CUPOS.ultra,
+                left: Math.max(0, (CUPOS.general + CUPOS.vip + CUPOS.ultra) - (g.sold + vp.sold + u.sold)),
+            },
             updatedAt: new Date().toISOString(),
         };
 
