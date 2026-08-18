@@ -6,7 +6,7 @@ const router = express.Router();
 
 // POST /api/reservations — public, create a reservation
 router.post('/', async (req, res) => {
-    const { ticket_type, instagram, whatsapp, quantity } = req.body;
+    const { ticket_type, instagram, whatsapp, quantity, fase, price_each } = req.body;
     console.log(`🎟️ New reservation (click Apartar) for [${ticket_type}]`);
 
     // Solo se requiere el tipo de boleto. El clic en "Apartar" cuenta como
@@ -20,55 +20,57 @@ router.post('/', async (req, res) => {
     const ig = (instagram || '').replace(/^@/, '').trim();
     const wa = (whatsapp || '').trim();
 
+    // El front del rediseño manda la etiqueta del nivel + fase + precio directamente
+    const clientFase = (fase != null && String(fase).trim()) ? String(fase).trim() : null;
+    const clientPrice = (price_each != null && !isNaN(Number(price_each))) ? Number(price_each) : null;
+
     try {
         const configRow = await getRow("SELECT value FROM config WHERE key = 'tickets'");
         const ticketsConfig = configRow ? JSON.parse(configRow.value) : [];
 
-        // Find ticket by id in the dynamic array
+        // ¿El ticket_type coincide con un id de la config del admin?
         const ticketIdx = ticketsConfig.findIndex(t => t.id === ticket_type);
-        if (ticketIdx === -1) {
-            return res.status(400).json({ error: 'Tipo de boleto inválido' });
-        }
-        const ticketInfo = ticketsConfig[ticketIdx];
+        const ticketInfo = ticketIdx !== -1 ? ticketsConfig[ticketIdx] : null;
 
-        const phasesRow = await getRow("SELECT value FROM config WHERE key = 'phases'");
-        const phases = phasesRow ? JSON.parse(phasesRow.value) : [];
+        // Valores por defecto (los que llegan del cliente)
+        let label = ticket_type;
+        let phaseName = clientFase || 'General';
+        let price = clientPrice != null ? clientPrice : 0;
 
-        const now = new Date();
-        let currentPhaseId = phases.length > 0 ? phases[phases.length - 1].id : "1"; // Default to last phase
+        // Si el ticket existe en la config, calculamos label/fase/precio desde ahí
+        // (comportamiento clásico), salvo que el cliente ya haya mandado esos datos.
+        if (ticketInfo) {
+            const phasesRow = await getRow("SELECT value FROM config WHERE key = 'phases'");
+            const phases = phasesRow ? JSON.parse(phasesRow.value) : [];
 
-        // Find active phase (first phase whose endDate is in the future)
-        for (const phase of phases) {
-            if (now < new Date(phase.endDate)) {
-                currentPhaseId = phase.id;
-                break;
+            const now = new Date();
+            let currentPhaseId = phases.length > 0 ? phases[phases.length - 1].id : "1";
+            for (const phase of phases) {
+                if (now < new Date(phase.endDate)) { currentPhaseId = phase.id; break; }
+            }
+
+            label = ticketInfo.label || ticket_type;
+            if (clientFase == null) {
+                const phaseInfo = phases.find(p => p.id === currentPhaseId) || { name: 'Fase ' + currentPhaseId };
+                phaseName = phaseInfo.name;
+            }
+            if (clientPrice == null) {
+                price = ticketInfo.prices?.[currentPhaseId] || 0;
             }
         }
 
-        const price = ticketInfo.prices?.[currentPhaseId] || 0;
-
-        // Find phase name for saving
-        const phaseInfo = phases.find(p => p.id === currentPhaseId) || { name: 'Fase ' + currentPhaseId };
-        const phaseName = phaseInfo.name;
-
-        // Uses $1, $2, ... $6
         const result = await execute(
             `INSERT INTO reservations (ticket_type, instagram, whatsapp, fase, quantity, price_each) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [ticketInfo?.label || ticket_type, ig, wa, phaseName, qty, price] // save the friendly label for the UI
+            [label, ig, wa, phaseName, qty, price]
         );
 
-        const newId = result.id || result.lastID || result[0]?.id; // handles Postgres RETURNING vs sqlite hack
-
+        const newId = result.id || result.lastID || result[0]?.id;
         const inserted = await getRow('SELECT * FROM reservations WHERE id = $1', [newId]);
 
-        if (ticketsConfig && ticketInfo) {
-            // Update real stock
+        // Solo actualizamos stock/expansión si el ticket vive en la config del admin
+        if (ticketInfo) {
             ticketInfo.realStock = Math.max(0, (ticketInfo.realStock || 0) - qty);
 
-            // We NO LONGER decrement fakeStart.
-            // Fake sales are additive for display: sold = fakeStart + realReservations
-
-            // Get actual counts to check auto-expansion
             const counts = await query('SELECT ticket_type, COUNT(*) as count FROM reservations GROUP BY ticket_type');
             const countsMap = {};
             counts.forEach(c => { countsMap[c.ticket_type] = parseInt(c.count); });
@@ -80,7 +82,6 @@ router.post('/', async (req, res) => {
             }
 
             ticketsConfig[ticketIdx] = ticketInfo;
-
             await execute(
                 "UPDATE config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = 'tickets'",
                 [JSON.stringify(ticketsConfig)]

@@ -1,182 +1,192 @@
 <!DOCTYPE html>
-<html lang="es">
-
+<html lang="es-MX">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HELL FIRE — Boletos · Noche de Terror</title>
-  <meta name="description"
-    content="Compra tus boletos para HELL FIRE, la fiesta de Halloween más esperada. Noche de terror & fiesta. Precios por fase, solo por tiempo limitado." />
-  <link rel="stylesheet" href="styles.css?v=10" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HELL FIRE — Aparta tu boleto · 31 de octubre</title>
+  <meta name="description" content="HELL FIRE — fiesta de disfraces, 31 de octubre, 9:00 PM en Rancho Impero XR, Mérida. Barra libre, DJ y más de 2000 personas. Aparta tu boleto por WhatsApp.">
+  <meta name="theme-color" content="#14100e">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Cinzel+Decorative:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="styles.css?v=11">
   <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff7a2e'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>" />
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d9282c'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
 </head>
-
 <body>
+  <div id="root">
 
-  <!-- Brasas flotantes -->
-  <div class="ember" style="left:12%; width:5px; height:5px; animation-duration:7s;"></div>
-  <div class="ember" style="left:28%; width:4px; height:4px; animation-duration:9s; animation-delay:2s;"></div>
-  <div class="ember" style="left:47%; width:6px; height:6px; animation-duration:6.5s; animation-delay:1s;"></div>
-  <div class="ember" style="left:63%; width:4px; height:4px; animation-duration:8s; animation-delay:3.5s;"></div>
-  <div class="ember" style="left:78%; width:5px; height:5px; animation-duration:7.5s; animation-delay:0.5s;"></div>
-  <div class="ember" style="left:90%; width:3px; height:3px; animation-duration:10s; animation-delay:4s;"></div>
-
-  <!-- ====================================================
-     HERO
-==================================================== -->
-  <section class="hero">
-    <!-- Sello -->
-    <div class="hero-seal">
-      <div class="seal-text">Solo con<br>boleto</div>
-      <div class="seal-big">+18</div>
+    <!-- ══════════ CRONÓMETRO ══════════ -->
+    <div class="bar-countdown">
+      <span class="bar-countdown__label" id="phase-label">Preventa termina en</span>
+      <div class="bar-countdown__clock">
+        <span class="num" id="cd-d">00</span><span class="unit">D</span>
+        <span class="sep">·</span>
+        <span class="num" id="cd-h">00</span><span class="unit">H</span>
+        <span class="sep">·</span>
+        <span class="num" id="cd-m">00</span><span class="unit">M</span>
+        <span class="sep">·</span>
+        <span class="num num--hot" id="cd-s">00</span><span class="unit unit--hot">S</span>
+      </div>
     </div>
 
-    <div class="hero-kicker">Halloween 2026 · Noche de terror</div>
-    <h1 class="hero-title">HELL <span class="title-fire">FIRE</span></h1>
-    <p class="hero-subtitle"></p>
-  </section>
+    <!-- ══════════ PORTADA ══════════ -->
+    <section class="portada" data-screen-label="Portada">
+      <div class="portada__ghost">
+        <video class="ghost-video" src="assets/video/ghost-hero.mp4" autoplay muted loop playsinline preload="auto"></video>
+      </div>
 
-  <!-- Cinta de precaución -->
-  <div class="caution-tape">
-    <span>peligro · peligro · peligro · peligro · peligro · peligro · peligro · peligro · peligro ·
-      peligro</span>
-  </div>
+      <div class="portada__texto">
+        <div class="kicker-row">
+          <span class="seal">
+            <span class="seal__ring"></span>
+            <span class="seal__label">+18</span>
+          </span>
+          <span class="kicker">Halloween · Mérida · 31 oct · 9 pm</span>
+        </div>
 
-  <!-- Phase Countdown -->
-  <section class="phase-section animate-on-scroll" style="padding-bottom: 0;">
-    <div class="phase-container" style="margin-bottom: 0;">
-      <div class="phase-current-label">FASE ACTUAL: <span id="current-phase-name">...</span></div>
-      <div class="countdown-grid" id="phase-countdown">
-        <div class="countdown-item">
-          <span class="countdown-value" id="cd-days">00</span>
-          <span class="countdown-label">Días</span>
+        <h1 class="hero-title">
+          <span class="hero-title__mask"><span class="hero-title__word">Hell</span></span>
+          <span class="hero-title__mask"><span class="hero-title__word hero-title__word--fire">Fire</span></span>
+        </h1>
+
+        <div class="hero-rule"></div>
+        <p class="hero-sub">Fiesta de disfraces</p>
+        <div class="spacer-96"></div>
+      </div>
+
+      <div class="scroll-hint">↓ Desliza hacia abajo</div>
+    </section>
+
+    <!-- ══════════ BANDA ══════════ -->
+    <div class="banda">
+      <span class="banda__texto">Fiesta masiva con más de <span class="banda__hot">2000 personas</span></span>
+    </div>
+
+    <!-- ══════════ BOLETOS ══════════ -->
+    <section class="boletos" data-screen-label="Boletos">
+      <div class="boletos__contenido">
+        <div class="section-head" data-reveal>
+          <span class="section-num">01</span>
+          <h2 class="section-title">Tu boleto</h2>
         </div>
-        <div class="countdown-item">
-          <span class="countdown-value" id="cd-hours">00</span>
-          <span class="countdown-label">Hrs</span>
+
+        <!-- las tarjetas se generan desde CONFIG.tiers en app.js -->
+        <div class="tiers" id="tiers"></div>
+
+        <div class="sello" data-reveal>
+          <span class="sello__corner sello__corner--tl"></span>
+          <span class="sello__corner sello__corner--br"></span>
+          <div class="sello__kicker">★ Grupo de 10 boletos ★</div>
+          <div class="sello__titulo">Botella <span class="sello__hot">gratis</span></div>
         </div>
-        <div class="countdown-item">
-          <span class="countdown-value" id="cd-mins">00</span>
-          <span class="countdown-label">Min</span>
+
+        <p class="nota-precio" data-reveal>El precio sube conforme se acerca la fiesta</p>
+      </div>
+
+      <video class="ghost-video ghost-video--boletos" src="assets/video/ghost-boletos.mp4" autoplay muted loop playsinline preload="auto"></video>
+      <div class="spacer-110"></div>
+    </section>
+
+    <!-- ══════════ FASES ══════════ -->
+    <section class="fases" data-screen-label="Fases">
+      <div class="section-head" data-reveal>
+        <span class="section-num">03</span>
+        <h2 class="section-title section-title--claro">El reloj corre</h2>
+      </div>
+
+      <div class="reloj" data-reveal>
+        <div class="reloj__caja">
+          <div class="reloj__num" id="big-d">00</div>
+          <div class="reloj__unit">Días</div>
         </div>
-        <div class="countdown-item">
-          <span class="countdown-value" id="cd-secs">00</span>
-          <span class="countdown-label">Seg</span>
+        <div class="reloj__caja">
+          <div class="reloj__num" id="big-h">00</div>
+          <div class="reloj__unit">Hrs</div>
+        </div>
+        <div class="reloj__caja">
+          <div class="reloj__num" id="big-m">00</div>
+          <div class="reloj__unit">Min</div>
+        </div>
+        <div class="reloj__caja reloj__caja--hot">
+          <div class="reloj__num reloj__num--hot" id="big-s">00</div>
+          <div class="reloj__unit reloj__unit--hot">Seg</div>
         </div>
       </div>
-      <p class="phase-urgency">¡Apresúrate! El precio sube al terminar el cronómetro.</p>
-    </div>
-  </section>
 
-  <!-- Ticket Selection & Rewards -->
-  <main class="section">
-    <div class="tickets-grid" id="tickets-grid">
-      <!-- Tickets will be injected here via app.js -->
-    </div>
+      <!-- la línea de tiempo se genera desde CONFIG.phases en app.js -->
+      <div class="timeline" id="timeline"></div>
+    </section>
 
-    <section class="rewards-section animate-on-scroll">
-      <div class="section-badge">Ofertas del inframundo</div>
-      <div class="rewards-grid" id="rewards-grid">
-        <!-- Injected via app.js -->
+    <!-- ══════════ LUGAR ══════════ -->
+    <section class="lugar" data-screen-label="Lugar">
+      <video class="ghost-video ghost-video--lugar" src="assets/video/ghost-lugar.mp4" autoplay muted loop playsinline preload="auto"></video>
+
+      <div class="lugar__contenido">
+        <div class="section-head" data-reveal>
+          <span class="section-num">04</span>
+          <h2 class="section-title section-title--sm">El escenario</h2>
+        </div>
+
+        <div class="bloque bloque--oro" data-reveal>
+          <div class="bloque__titulo">Rancho<br>Impero XR</div>
+          <div class="bloque__meta">Mérida, Yucatán<br>31 oct · 9:00 pm</div>
+          <a class="btn-oscuro" href="https://www.google.com/maps/search/?api=1&amp;query=Rancho+Impero+XR+M%C3%A9rida" target="_blank" rel="noopener">Ver mapa</a>
+        </div>
+
+        <div class="bloque bloque--rojo" data-reveal>
+          <div class="bloque__titulo bloque__titulo--rojo">On Fire 2026</div>
+          <p class="bloque__texto">La primera edición reunió a <b>828 personas</b>. Esta va a ser más grande.</p>
+        </div>
+      </div>
+
+      <div class="spacer-120"></div>
+    </section>
+
+    <!-- ══════════ REGLAS ══════════ -->
+    <section class="reglas" data-screen-label="Reglas">
+      <div class="section-head" data-reveal>
+        <span class="section-num">05</span>
+        <h2 class="section-title section-title--sm section-title--nowrap">Reglas de la casa</h2>
+      </div>
+
+      <div class="reglas__lista">
+        <div class="regla regla--no" data-reveal>
+          <span class="regla__icono">✕</span>
+          <span class="regla__texto">Nada de drogas — tolerancia cero</span>
+        </div>
+        <div class="regla regla--no" data-reveal>
+          <span class="regla__icono">✕</span>
+          <span class="regla__texto">Nada de objetos punzantes</span>
+        </div>
+        <div class="regla regla--no" data-reveal>
+          <span class="regla__icono">✕</span>
+          <span class="regla__texto">Nada de cristales ni envases de vidrio</span>
+        </div>
+        <div class="regla regla--no" data-reveal>
+          <span class="regla__icono">✕</span>
+          <span class="regla__texto">Nada de botellas abiertas — todo sellado</span>
+        </div>
+        <div class="regla regla--si" data-reveal>
+          <span class="regla__icono regla__icono--si">✓</span>
+          <span class="regla__texto">Identificación obligatoria para entrar · +18</span>
+        </div>
       </div>
     </section>
-  </main>
 
-  <!-- Cinta de precaución roja -->
-  <div class="caution-tape tape-blood">
-    <span>hell fire · hell fire · hell fire · hell fire · hell fire · hell fire · hell fire · hell
-      fire</span>
+    <!-- ══════════ FOOTER ══════════ -->
+    <footer class="footer">
+      <div class="footer__marca">Hell <span class="footer__fire">Fire</span></div>
+      <div class="footer__redes">
+        <a class="btn-fantasma" href="https://instagram.com/Andry_Rabanales" target="_blank" rel="noopener">Instagram</a>
+        <a class="btn-wa" href="https://wa.me/529992691367?text=Hola%2C%20quiero%20apartar%20mi%20boleto%20para%20HELL%20FIRE" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <p class="footer__copy">© 2026 Hellfire Mérida</p>
+    </footer>
+
+    <!-- ══════════ CTA FLOTANTE ══════════ -->
+    <a class="cta-flotante" href="https://wa.me/529992691367?text=Hola%2C%20quiero%20apartar%20mi%20boleto%20para%20HELL%20FIRE" target="_blank" rel="noopener">Apartar boleto</a>
   </div>
 
-  <!-- Phase Schedule Info -->
-  <section class="phase-section animate-on-scroll">
-    <div class="phase-info-container">
-      <h3 class="phase-info-title">Cronograma de Fases</h3>
-      <div class="phase-steps" id="phase-steps">
-        <!-- Injected via app.js from CONFIG.phases -->
-      </div>
-    </div>
-  </section>
-
-  <!-- Location Section -->
-  <section class="location-section animate-on-scroll">
-    <div class="location-card">
-      <div class="location-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-      </div>
-      <h3 class="location-title">Ubicación del Evento</h3>
-      <p class="location-desc">Haz clic abajo para ver el mapa y llegar sin problemas.</p>
-      <a href="https://maps.app.goo.gl/g2Jpuy8AZ5bpYH4m6?g_st=aw" target="_blank" class="btn-location">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M9 6l-6 3v12l6-3 6 3 6-3V6l-6 3z" />
-          <path d="M9 6v12" />
-          <path d="M15 9v12" />
-        </svg>
-        <span>VER EN GOOGLE MAPS</span>
-      </a>
-    </div>
-  </section>
-
-  <!-- ====================================================
-     HISTORIAL DE FIESTAS
-==================================================== -->
-  <section class="history-section animate-on-scroll">
-    <div class="section-label">Nuestra trayectoria</div>
-    <h3 class="history-title">Historial de Fiestas</h3>
-    <div class="history-card">
-      <div class="history-flame">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path
-            d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-        </svg>
-      </div>
-      <div class="history-info">
-        <div class="history-event">ON FIRE 2026</div>
-        <p class="history-detail">Nuestra primera edición reunió a <strong>828 personas</strong> en una noche
-          inolvidable. Gracias por encender la llama con nosotros.</p>
-      </div>
-      <div class="history-stamp">Evento<br>realizado<br>· 828 ·</div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="footer-socials">
-      <a href="https://instagram.com" target="_blank" class="footer-social-link social-pulsating" id="link-instagram">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="2" y="2" width="20" height="20" rx="5" />
-          <circle cx="12" cy="12" r="4" />
-          <path d="M17.5 6.5h.01" />
-        </svg>
-        <span>Instagram</span></a>
-      <a href="https://wa.me/529992691367" target="_blank" class="footer-social-link social-pulsating"
-        id="link-whatsapp">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z" />
-        </svg>
-        <span>WhatsApp</span></a>
-    </div>
-    <p class="footer-note">Una vez pagado, tendrás tu <strong>check</strong> para los premios de la fiesta.</p>
-    <p>© 2026 HELL FIRE</p>
-  </footer>
-
-  <div id="toast-container"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
-
 </html>
