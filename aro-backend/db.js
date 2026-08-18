@@ -144,6 +144,7 @@ async function initDB() {
       "Preventa":       { "general": 400, "vip": 180, "ultra": 40 },
       "Venta regular":  { "general": 400, "vip": 180, "ultra": 40 },
       "Última llamada": { "general": 400, "vip": 180, "ultra": 40 },
+      "Fase 4":         { "general": 300, "vip": 160, "ultra": 30 },
       "Mero día":       { "general": 300, "vip": 160, "ultra": 30 }
     }`]
   ];

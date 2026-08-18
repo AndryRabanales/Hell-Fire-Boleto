@@ -36,9 +36,17 @@ const CONFIG = {
       prices: { uady: 275, ext: 300, vip: 520, ultra: 1000 },
     },
     {
-      // Mero día: 17 oct — hasta el evento (31 oct)
+      // Fase 4: 17 oct — arranca el Mero día el 31 oct 00:00
+      name: 'Fase 4',
+      end: '2026-10-31T00:00:00-06:00',
+      date: 'Hasta 30 Oct',
+      prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
+    },
+    {
+      // Mero día (FASE 5): 31 oct 00:00 — día del evento (precio final)
+      // OJO: precios placeholder (iguales a Fase 4) hasta recibir los reales.
       name: 'Mero día',
-      end: '2026-10-31T23:59:59-06:00',
+      end: '2026-11-01T06:00:00-06:00',
       date: '31 Oct',
       prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
     },
