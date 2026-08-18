@@ -40,7 +40,7 @@ const CONFIG = {
       name: 'Fase 4',
       end: '2026-10-31T20:00:00-06:00',
       date: 'Cierra 31 Oct · 8pm',
-      prices: { uady: 330, ext: 355, vip: 575, ultra: 1000 },
+      prices: { uady: 330, ext: 355, vip: 575, ultra: 1100 },
     },
   ],
 
