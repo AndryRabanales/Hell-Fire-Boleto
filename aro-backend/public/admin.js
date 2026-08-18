@@ -1,714 +1,27 @@
-// ============================================================
-// GLOBAL STATE & CONFIG
-// ============================================================
-const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = IS_LOCAL ? 'http://localhost:3001' : '';
+/* ============================================================
+   HELL FIRE — Panel de administración
+   Solo: ventas reales (generador) + clics de "Apartar" + historial.
+   ============================================================ */
 
+const API_URL = '';
 let currentReservations = [];
-let dbConfig = {
-    phases: [],
-    tickets: [],
-    rewards: [],
-    event_info: {},
-    metric_descriptions: { qty: '', rev: '', res: '' }
+
+// Orden cronológico de las fases (coincide con la página nueva)
+const PHASE_ORDER = ['Preventa', 'Venta regular', 'Última llamada', 'Mero día'];
+const orderOf = (name) => {
+    const i = PHASE_ORDER.indexOf(name);
+    return i === -1 ? 99 : i;
 };
 
-// ============================================================
-// NAVIGATION & VIEW SWITCHING
-// ============================================================
-function switchView(viewId, btn) {
-    document.querySelectorAll('.main-view').forEach(el => el.classList.remove('active'));
-    document.getElementById(`view-${viewId}`).classList.add('active');
-
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-
-    if (viewId === 'data') loadDashboard();
-    if (viewId === 'editor') refreshPreview();
+// Categoría a partir de la etiqueta del nivel
+function catDe(label) {
+    const t = (label || '').toLowerCase();
+    if (t.includes('ultra')) return 'ultra';
+    if (t.includes('vip')) return 'vip';
+    return 'general';
 }
 
-function showTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-}
-
-// ============================================================
-// REAL-TIME PREVIEW SYNC
-// ============================================================
-function syncPreview() {
-    const iframe = document.getElementById('preview-iframe');
-    if (!iframe || !iframe.contentWindow) return;
-
-    // Collect current state from form inputs
-    const currentConfig = {
-        event_info: {
-            title: document.getElementById('edit-title').value,
-            subtitle: document.getElementById('edit-subtitle').value,
-            date_text: document.getElementById('edit-date-text').value,
-            show_timer: document.getElementById('toggle-timer').checked,
-            show_phase_alert: document.getElementById('toggle-phase-alert').checked,
-            whatsapp: document.getElementById('edit-whatsapp').value,
-            instagram: document.getElementById('edit-instagram').value,
-            tiktok: document.getElementById('edit-tiktok').value,
-            show_whatsapp: true, // Auto-enable if editing
-            show_instagram: true,
-            show_tiktok: true
-        },
-        // For simple sync, we can just send the whole dbConfig object for tickets/phases/faqs
-        // since they are managed via arrays and renderers.
-        tickets: dbConfig.tickets,
-        phases: dbConfig.phases,
-        rewards: dbConfig.rewards
-    };
-
-    iframe.contentWindow.postMessage({
-        type: 'UPDATE_CONFIG',
-        data: currentConfig
-    }, '*');
-}
-
-function refreshPreview() {
-    const iframe = document.getElementById('preview-iframe');
-    iframe.src = 'index.html?t=' + Date.now();
-    // After load, sync the current state
-    iframe.onload = () => syncPreview();
-}
-
-// ============================================================
-// LOAD CONFIG & INITIAL RENDER
-// ============================================================
-async function loadConfig() {
-    try {
-        const res = await fetch(`${API_URL}/api/config`);
-        if (!res.ok) return;
-        const data = await res.json();
-
-        dbConfig.phases = data.phases || [];
-        dbConfig.tickets = data.tickets || [];
-        dbConfig.rewards = data.rewards || [];
-        dbConfig.event_info = data.event_info || {};
-        dbConfig.metric_descriptions = data.metric_descriptions || { qty: '', rev: '', res: '' };
-
-        renderEditorSections();
-    } catch (err) {
-        showToast('Error cargando configuración', 'error');
-    }
-}
-
-function renderEditorSections() {
-    // Fill General Info
-    const c = dbConfig.event_info;
-    document.getElementById('edit-title').value = c.title || '';
-    document.getElementById('edit-subtitle').value = c.subtitle || '';
-    document.getElementById('edit-date-text').value = c.date_text || '';
-    document.getElementById('toggle-timer').checked = c.show_timer;
-    document.getElementById('toggle-phase-alert').checked = c.show_phase_alert;
-    document.getElementById('edit-whatsapp').value = c.whatsapp || '';
-    document.getElementById('edit-instagram').value = c.instagram || '';
-    document.getElementById('edit-tiktok').value = c.tiktok || '';
-
-    renderEditorTickets();
-    renderEditorPhases();
-    renderEditorRewards();
-    renderMetricDescriptions();
-}
-
-function renderMetricDescriptions() {
-    if (dbConfig.metric_descriptions) {
-        if (document.getElementById('desc-qty')) document.getElementById('desc-qty').value = dbConfig.metric_descriptions.qty || '';
-        if (document.getElementById('desc-rev')) document.getElementById('desc-rev').value = dbConfig.metric_descriptions.rev || '';
-        if (document.getElementById('desc-res')) document.getElementById('desc-res').value = dbConfig.metric_descriptions.res || '';
-    }
-}
-
-function toggleFlip(el) {
-    if (el.classList.contains('editing')) return; // Don't flip back if editing? Or just let it flip.
-    el.classList.toggle('flipped');
-}
-
-async function saveMetricDescription(metricKey) {
-    const newVal = document.getElementById(`desc-${metricKey}`).value;
-    dbConfig.metric_descriptions[metricKey] = newVal;
-
-    try {
-        const resp = await saveConfigField('metric_descriptions', dbConfig.metric_descriptions);
-        if (resp.ok) {
-            showToast(`Descripción de ${metricKey} guardada`, 'success');
-            // Remove flipped class after save if desired, or keep it.
-            // document.getElementById(`card-${metricKey}`).classList.remove('flipped');
-        } else {
-            throw new Error();
-        }
-    } catch (err) {
-        showToast('Error al guardar descripción', 'error');
-    }
-}
-
-// ============================================================
-// TICKET RENDERER (Editor)
-// ============================================================
-function renderEditorTickets() {
-    const container = document.getElementById('editor-tickets-list');
-    container.innerHTML = '';
-
-    dbConfig.tickets.forEach((t, idx) => {
-        const item = document.createElement('div');
-        item.className = 'editor-card-item';
-        item.style = 'background:rgba(0,0,0,0.2); padding:15px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border);';
-        item.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700;">${t.emoji} ${t.label}</span>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="openTicketModal(${idx})">✏️</button>
-                    <button class="btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteTicket(${idx})">🗑️</button>
-                </div>
-            </div>
-            <p style="font-size:11px; color:var(--muted); margin-top:5px;">Stock: ${t.realStock} | Inicio: ${t.fakeStart}/${t.fakeTotal}${t.badge ? ` | Badge: ${t.badge}` : ''}</p>
-            ${t.subtitle ? `<p style="font-size:10px; color:var(--muted); margin-top:2px; opacity:0.7;">${t.subtitle}</p>` : ''}
-        `;
-        container.appendChild(item);
-    });
-}
-
-let editingTicketIdx = null;
-
-const BADGE_STYLES = [
-    { value: '', label: 'Sin badge' },
-    { value: 'badge-normal', label: 'Normal (rojo)' },
-    { value: 'badge-popular', label: 'Popular (naranja brillante)' },
-    { value: 'badge-exclusive', label: 'Exclusivo (dorado)' },
-    { value: 'badge-promo', label: 'Promo (verde)' },
-];
-
-function openTicketModal(idx = null) {
-    editingTicketIdx = idx;
-    const t = idx !== null ? dbConfig.tickets[idx] : {
-        id: 'tkt-' + Date.now(),
-        label: '',
-        subtitle: '',
-        emoji: '🎟️',
-        realStock: 100,
-        fakeStart: 0,
-        fakeTotal: 100,
-        badge: '',
-        badgeClass: '',
-        prices: {}
-    };
-
-    document.getElementById('ticket-modal-title').innerText = idx !== null ? 'Editar Boleto' : 'Nuevo Boleto';
-    const body = document.getElementById('ticket-modal-body');
-
-    let pricesHtml = '';
-    dbConfig.phases.forEach(p => {
-        pricesHtml += `
-            <div style="margin-bottom:8px;">
-                <label style="font-size:11px; color:var(--muted)">Precio en ${p.name}</label>
-                <input type="number" class="editor-input" data-phase-id="${p.id}" value="${t.prices[p.id] || 0}">
-            </div>
-        `;
-    });
-
-    const badgeOptions = BADGE_STYLES.map(b =>
-        `<option value="${b.value}" ${(t.badgeClass || '') === b.value ? 'selected' : ''}>${b.label}</option>`
-    ).join('');
-
-    body.innerHTML = `
-        <div class="editor-form-group">
-            <label>Nombre / Categoría</label>
-            <input type="text" id="modal-t-label" class="editor-input" value="${t.label || ''}" placeholder="Ej: General">
-        </div>
-        <div class="editor-form-group">
-            <label>Subtítulo (descripción corta)</label>
-            <input type="text" id="modal-t-subtitle" class="editor-input" value="${t.subtitle || ''}" placeholder="Ej: Acceso completo al evento">
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:12px;">
-            <div style="flex:1.4">
-                <label style="font-size:11px; color:var(--muted)">Texto del Badge</label>
-                <input type="text" id="modal-t-badge" class="editor-input" value="${t.badge || ''}" placeholder="Ej: MÁS POPULAR">
-            </div>
-            <div style="flex:1">
-                <label style="font-size:11px; color:var(--muted)">Estilo del Badge</label>
-                <select id="modal-t-badgeclass" class="editor-input">${badgeOptions}</select>
-            </div>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:12px;">
-            <div style="flex:1">
-                <label style="font-size:11px; color:var(--muted)">Stock Real</label>
-                <input type="number" id="modal-t-stock" class="editor-input" value="${t.realStock}">
-            </div>
-            <div style="flex:1">
-                <label style="font-size:11px; color:var(--muted)">Punto Inicio (Falso)</label>
-                <input type="number" id="modal-t-fakestart" class="editor-input" value="${t.fakeStart}">
-            </div>
-            <div style="flex:1">
-                <label style="font-size:11px; color:var(--muted)">Total Vista (Falso)</label>
-                <input type="number" id="modal-t-faketotal" class="editor-input" value="${t.fakeTotal}">
-            </div>
-        </div>
-        <div style="margin-top:15px;">
-            <label style="font-weight:600; display:block; margin-bottom:10px;">Precios por Fase</label>
-            <div id="modal-prices-container">
-                ${pricesHtml}
-            </div>
-        </div>
-    `;
-
-    document.getElementById('ticket-modal').style.display = 'flex';
-}
-
-function closeTicketModal() {
-    document.getElementById('ticket-modal').style.display = 'none';
-}
-
-function saveTicketModal() {
-    const label = document.getElementById('modal-t-label').value.trim();
-    if (!label) {
-        showToast('El boleto necesita un nombre', 'error');
-        return;
-    }
-
-    // Partimos del boleto original para NO perder campos (emoji, id, etc.)
-    const base = editingTicketIdx !== null ? { ...dbConfig.tickets[editingTicketIdx] } : {
-        id: 'tkt-' + Date.now(),
-        emoji: '🎟️'
-    };
-
-    const prices = {};
-    document.querySelectorAll('#modal-prices-container input').forEach(inp => {
-        prices[inp.dataset.phaseId] = parseInt(inp.value) || 0;
-    });
-
-    const ticketData = {
-        ...base,
-        label,
-        subtitle: document.getElementById('modal-t-subtitle').value.trim(),
-        badge: document.getElementById('modal-t-badge').value.trim(),
-        badgeClass: document.getElementById('modal-t-badgeclass').value,
-        realStock: parseInt(document.getElementById('modal-t-stock').value) || 0,
-        fakeStart: parseInt(document.getElementById('modal-t-fakestart').value) || 0,
-        fakeTotal: parseInt(document.getElementById('modal-t-faketotal').value) || 0,
-        prices
-    };
-
-    if (editingTicketIdx !== null) {
-        dbConfig.tickets[editingTicketIdx] = ticketData;
-    } else {
-        dbConfig.tickets.push(ticketData);
-    }
-
-    closeTicketModal();
-    renderEditorTickets();
-    syncPreview();
-    showToast('Boleto actualizado — recuerda Guardar Cambios');
-}
-
-function deleteTicket(idx) {
-    if (confirm('¿Seguro que quieres borrar este boleto?')) {
-        dbConfig.tickets.splice(idx, 1);
-        renderEditorTickets();
-        syncPreview();
-    }
-}
-
-// ================= ===========================================
-// DATA PERSISTENCE
-// ============================================================
-async function saveVisualChanges() {
-    // Collect final state
-    dbConfig.event_info = {
-        title: document.getElementById('edit-title').value,
-        subtitle: document.getElementById('edit-subtitle').value,
-        date_text: document.getElementById('edit-date-text').value,
-        show_timer: document.getElementById('toggle-timer').checked,
-        show_phase_alert: document.getElementById('toggle-phase-alert').checked,
-        whatsapp: document.getElementById('edit-whatsapp').value,
-        instagram: document.getElementById('edit-instagram').value,
-        tiktok: document.getElementById('edit-tiktok').value,
-        show_whatsapp: true,
-        show_instagram: true,
-        show_tiktok: true
-    };
-
-    try {
-        // Save all major segments
-        const responses = await Promise.all([
-            saveConfigField('event_info', dbConfig.event_info),
-            saveConfigField('tickets', dbConfig.tickets),
-            saveConfigField('phases', dbConfig.phases),
-            saveConfigField('rewards', dbConfig.rewards)
-        ]);
-
-        if (responses.some(r => r.status === 401 || r.status === 403)) return logout();
-
-        const failed = responses.filter(r => !r.ok);
-        if (failed.length > 0) {
-            throw new Error(`${failed.length} secciones no se guardaron`);
-        }
-
-        showToast('🚀 Sitio actualizado y guardado correctamente', 'success');
-    } catch (err) {
-        showToast('Error al guardar: ' + err.message, 'error');
-    }
-}
-
-async function saveConfigField(key, value) {
-    return fetch(`${API_URL}/api/config/${key}`, {
-        method: 'PUT',
-        headers: apiHeaders(),
-        body: JSON.stringify({ value })
-    });
-}
-
-// ============================================================
-// PHASE & FAQ RENDERERS (Simplificados para el nuevo panel)
-// ============================================================
-// Formatea una fecha para <input type="datetime-local"> en hora LOCAL (sin corrimiento UTC)
-function toLocalInputValue(dateStr) {
-    const d = new Date(dateStr);
-    if (isNaN(d)) return '';
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function renderEditorPhases() {
-    const container = document.getElementById('editor-phases-list');
-    container.innerHTML = '';
-    dbConfig.phases.forEach((p, idx) => {
-        const item = document.createElement('div');
-        item.style = 'margin-bottom:12px; display:flex; gap:8px;';
-        item.innerHTML = `
-            <input type="text" class="editor-input" value="${p.name}" oninput="updatePhase(${idx}, 'name', this.value)" style="flex:1;">
-            <input type="datetime-local" class="editor-input" value="${toLocalInputValue(p.endDate)}" oninput="updatePhase(${idx}, 'endDate', this.value)" style="flex:1.2;">
-            <button class="btn-danger" onclick="removePhaseRow(${idx})">🗑️</button>
-        `;
-        container.appendChild(item);
-    });
-}
-
-function updatePhase(idx, field, val) {
-    if (field === 'endDate') {
-        if (!val) return; // input incompleto — no rompas la fecha
-        // Guardamos la hora local tal cual (formato "YYYY-MM-DDTHH:mm:00"),
-        // igual que las fases seed — el front la interpreta en hora local.
-        val = val + ':00';
-    }
-    dbConfig.phases[idx][field] = val;
-    syncPreview();
-}
-
-function addPhaseRow() {
-    // ID único: máximo id numérico existente + 1 (evita choques tras borrar fases)
-    const maxId = dbConfig.phases.reduce((m, p) => Math.max(m, parseInt(p.id) || 0), 0);
-    dbConfig.phases.push({
-        id: String(maxId + 1),
-        name: 'Nueva Fase',
-        endDate: toLocalInputValue(new Date(Date.now() + 86400000 * 7)) + ':00'
-    });
-    renderEditorPhases();
-    syncPreview();
-}
-
-function removePhaseRow(idx) {
-    dbConfig.phases.splice(idx, 1);
-    renderEditorPhases();
-    syncPreview();
-}
-
-function renderEditorRewards() {
-    const container = document.getElementById('editor-rewards-list');
-    if (!container) return;
-    container.innerHTML = '';
-    dbConfig.rewards.forEach((r, idx) => {
-        const item = document.createElement('div');
-        item.style = 'background:rgba(0,0,0,0.1); padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid var(--border);';
-        item.innerHTML = `
-            <div style="display:flex; gap:5px; margin-bottom:8px;">
-               <input type="text" class="editor-input" value="${r.icon}" placeholder="Icon" oninput="updateReward(${idx}, 'icon', this.value)" style="width:40px; text-align:center;">
-               <input type="text" class="editor-input" value="${r.title}" placeholder="Título" oninput="updateReward(${idx}, 'title', this.value)" style="flex:1;">
-            </div>
-            <textarea class="editor-input" placeholder="Descripción" oninput="updateReward(${idx}, 'description', this.value)" rows="2">${r.description}</textarea>
-            <button class="btn-danger" onclick="removeRewardRow(${idx})" style="width:100%; margin-top:8px; padding:4px;">Eliminar</button>
-        `;
-        container.appendChild(item);
-    });
-}
-
-function updateReward(idx, field, val) {
-    dbConfig.rewards[idx][field] = val;
-    syncPreview();
-}
-
-function addRewardRow() {
-    dbConfig.rewards.push({
-        id: Date.now().toString(),
-        icon: '🎁',
-        title: 'Nueva Promoción',
-        description: 'Detalles aquí...'
-    });
-    renderEditorRewards();
-    syncPreview();
-}
-
-function removeRewardRow(idx) {
-    dbConfig.rewards.splice(idx, 1);
-    renderEditorRewards();
-    syncPreview();
-}
-
-// ... Reutilizo lógica de dashboard y reservas del código anterior (integración) ...
-// (Para brevedad del chunk, asumo que las funciones del dashboard se preservan o se inyectan correctamente)
-
-// ============================================================
-// DASHBOARD
-// ============================================================
-async function loadDashboard() {
-    // Re-descargamos reservas y visitas para tener los datos frescos
-    await loadReservations();
-    await loadVisits();
-    renderDashboardStats();
-}
-
-async function loadVisits() {
-    try {
-        const res = await fetch(`${API_URL}/api/stats`, { headers: apiHeaders() });
-        if (res.status === 401) return logout();
-        const data = await res.json();
-        const el = document.getElementById('stat-visits');
-        if (el) el.textContent = data.visits ?? 0;
-    } catch (err) {
-        /* silencioso */
-    }
-}
-
-// Orden cronológico de fases (por nombre) según la config
-function phaseOrderIndex() {
-    const order = {};
-    [...(dbConfig.phases || [])]
-        .sort((a, b) => new Date(a.endDate) - new Date(b.endDate))
-        .forEach((p, i) => { order[p.name] = i; });
-    return order;
-}
-
-function renderDashboardStats() {
-    const active = currentReservations.filter(r => r.status !== 'cancelled');
-
-    let totalQty = 0;
-    let totalRev = 0;
-    active.forEach(r => {
-        totalQty += r.quantity;
-        totalRev += r.quantity * r.price_each;
-    });
-
-    document.getElementById('stat-total-qty').textContent = totalQty;
-    document.getElementById('stat-total-rev').textContent = `$${totalRev.toFixed(0)}`;
-
-    const order = phaseOrderIndex();
-    const orderOf = name => (name in order ? order[name] : 99);
-
-    // ── Apartados por Fase ──
-    const byPhase = {};
-    active.forEach(r => {
-        const f = r.fase || '—';
-        if (!byPhase[f]) byPhase[f] = { count: 0, rev: 0 };
-        byPhase[f].count += r.quantity;
-        byPhase[f].rev += r.quantity * r.price_each;
-    });
-
-    const phaseBody = document.getElementById('phase-table-body');
-    const phaseRows = Object.entries(byPhase).sort((a, b) => orderOf(a[0]) - orderOf(b[0]));
-    if (phaseRows.length === 0) {
-        phaseBody.innerHTML = '<tr><td colspan="3" class="text-center">Aún no hay apartados</td></tr>';
-    } else {
-        phaseBody.innerHTML = phaseRows.map(([fase, v]) => `
-            <tr>
-                <td><strong>${fase}</strong></td>
-                <td>${v.count}</td>
-                <td style="color:var(--green)">$${v.rev.toFixed(0)}</td>
-            </tr>
-        `).join('');
-    }
-
-    // ── Desglose por Boleto y Fase ──
-    const combo = {};
-    active.forEach(r => {
-        const key = `${r.ticket_type}|${r.fase || '—'}`;
-        if (!combo[key]) combo[key] = { ticket: r.ticket_type, fase: r.fase || '—', price: r.price_each, count: 0, rev: 0 };
-        combo[key].count += r.quantity;
-        combo[key].rev += r.quantity * r.price_each;
-    });
-
-    const breakdownBody = document.getElementById('breakdown-table-body');
-    const comboRows = Object.values(combo).sort((a, b) =>
-        a.ticket.localeCompare(b.ticket) || orderOf(a.fase) - orderOf(b.fase)
-    );
-    if (comboRows.length === 0) {
-        breakdownBody.innerHTML = '<tr><td colspan="5" class="text-center">Aún no hay apartados</td></tr>';
-    } else {
-        breakdownBody.innerHTML = comboRows.map(c => `
-            <tr>
-                <td><strong>${c.ticket}</strong></td>
-                <td>${c.fase}</td>
-                <td>$${c.price}</td>
-                <td>${c.count}</td>
-                <td style="color:var(--green)">$${c.rev.toFixed(0)}</td>
-            </tr>
-        `).join('');
-    }
-}
-
-// ============================================================
-// RESERVATIONS
-// ============================================================
-async function loadReservations() {
-    try {
-        const status = document.getElementById('filter-status').value;
-        const search = document.getElementById('filter-search').value;
-
-        let url = `${API_URL}/api/reservations?limit=500`;
-        if (status) url += `&status=${status}`;
-        if (search) url += `&search=${encodeURIComponent(search)}`;
-
-        const res = await fetch(url, { headers: apiHeaders() });
-        if (res.status === 401) return logout();
-        const data = await res.json();
-
-        currentReservations = data.reservations || [];
-        renderReservationsTable();
-
-        if (document.getElementById('view-data').classList.contains('active')) {
-            renderDashboardStats();
-        }
-    } catch (err) {
-        showToast('Error cargando reservas', 'error');
-    }
-}
-
-function timeAgo(date) {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return 'Hace ' + Math.floor(interval) + ' años';
-    interval = seconds / 2592000;
-    if (interval > 1) return 'Hace ' + Math.floor(interval) + ' meses';
-    interval = seconds / 86400;
-    if (interval > 1) return 'Hace ' + Math.floor(interval) + ' días';
-    interval = seconds / 3600;
-    if (interval > 1) return 'Hace ' + Math.floor(interval) + ' horas';
-    interval = seconds / 60;
-    if (interval > 1) return 'Hace ' + Math.floor(interval) + ' mins';
-    return 'Hace unos segundos';
-}
-
-function renderReservationsTable() {
-    const tbody = document.getElementById('reservations-table-body');
-    tbody.innerHTML = '';
-
-    if (currentReservations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center">No hay reservas encontradas</td></tr>`;
-        return;
-    }
-
-    currentReservations.forEach(r => {
-        const d = new Date(r.created_at);
-        const dateStr = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-        const relativeTime = timeAgo(r.created_at);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="color:var(--text-muted)">#${r.id}</td>
-            <td>
-                <div style="font-weight:600;">${relativeTime}</div>
-                <div style="font-size:10px; color:var(--text-muted)">${dateStr}</div>
-            </td>
-            <td><strong>@${r.instagram}</strong></td>
-            <td>${r.whatsapp ? `<a href="https://wa.me/${String(r.whatsapp).replace(/\D/g, '')}" target="_blank" style="color:var(--green); text-decoration:none;">📱 ${r.whatsapp}</a>` : '-'}</td>
-            <td>${r.ticket_type}</td>
-            <td><span class="badge-normal" style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">${r.fase || '-'}</span></td>
-            <td>${r.quantity}</td>
-            <td style="color:var(--green)">$${r.price_each}</td>
-            <td>
-                <select class="status-select status-${r.status}" onchange="updateReservationStatus(${r.id}, this)">
-                  <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>Pendiente</option>
-                  <option value="confirmed" ${r.status === 'confirmed' ? 'selected' : ''}>Confirmado</option>
-                  <option value="cancelled" ${r.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
-                </select>
-            </td>
-            <td>
-                <input type="text" class="input-light" value="${r.notes || ''}" placeholder="Añadir nota..." onblur="updateReservationNotes(${r.id}, this.value)" style="padding:4px 8px; font-size:12px;">
-            </td>
-            <td>
-                <button class="btn-danger" style="padding:4px 8px; font-size:12px" onclick="deleteReservation(${r.id})">🗑️</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-// ============================================================
-// RESERVATION ACTIONS (status / notas / borrar)
-// ============================================================
-async function updateReservationStatus(id, sel) {
-    const status = sel.value;
-    try {
-        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
-            method: 'PATCH',
-            headers: apiHeaders(),
-            body: JSON.stringify({ status })
-        });
-        if (res.status === 401) return logout();
-        if (!res.ok) throw new Error();
-
-        sel.className = `status-select status-${status}`;
-        const r = currentReservations.find(x => x.id === id);
-        if (r) r.status = status;
-        if (document.getElementById('view-data').classList.contains('active')) renderDashboardStats();
-        showToast('Estado actualizado');
-    } catch (err) {
-        showToast('Error al actualizar estado', 'error');
-    }
-}
-
-async function updateReservationNotes(id, notes) {
-    try {
-        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
-            method: 'PATCH',
-            headers: apiHeaders(),
-            body: JSON.stringify({ notes })
-        });
-        if (res.status === 401) return logout();
-        if (!res.ok) throw new Error();
-
-        const r = currentReservations.find(x => x.id === id);
-        if (r) r.notes = notes;
-        showToast('Nota guardada');
-    } catch (err) {
-        showToast('Error al guardar nota', 'error');
-    }
-}
-
-async function deleteReservation(id) {
-    if (!confirm('¿Eliminar esta reserva? Esta acción no se puede deshacer.')) return;
-    try {
-        const res = await fetch(`${API_URL}/api/reservations/${id}`, {
-            method: 'DELETE',
-            headers: apiHeaders()
-        });
-        if (res.status === 401) return logout();
-        if (!res.ok) throw new Error();
-
-        currentReservations = currentReservations.filter(x => x.id !== id);
-        renderReservationsTable();
-        if (document.getElementById('view-data').classList.contains('active')) renderDashboardStats();
-        showToast('Reserva eliminada');
-    } catch (err) {
-        showToast('Error al eliminar reserva', 'error');
-    }
-}
-
-// ============================================================
-// AUTHENTICATION
-// ============================================================
+/* ── Auth ── */
 async function handleLogin() {
     const email = document.getElementById('login-email').value.toLowerCase().trim();
     const password = document.getElementById('login-password').value;
@@ -722,40 +35,34 @@ async function handleLogin() {
 
     try {
         btn.disabled = true;
-        btn.innerText = 'Entrando...';
+        btn.innerText = 'Entrando…';
         errorDiv.innerText = '';
 
         const resp = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password }),
         });
-
         const data = await resp.json();
-
-        if (!resp.ok) {
-            throw new Error(data.error || 'Error al iniciar sesión');
-        }
+        if (!resp.ok) throw new Error(data.error || 'Error al iniciar sesión');
 
         sessionStorage.setItem('aro_admin_token', data.token);
         sessionStorage.setItem('aro_admin_name', data.name);
 
         document.getElementById('admin-name').innerText = data.name;
         document.getElementById('login-container').style.display = 'none';
-        document.getElementById('app-container').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'block';
 
-        await loadConfig();
         loadDashboard();
         showToast('¡Bienvenido, ' + data.name + '!');
     } catch (err) {
         errorDiv.innerText = err.message;
     } finally {
         btn.disabled = false;
-        btn.innerText = 'Entrar al Panel';
+        btn.innerText = 'Entrar';
     }
 }
 
-// Auth / Shared Tools
 function logout() {
     sessionStorage.removeItem('aro_admin_token');
     sessionStorage.removeItem('aro_admin_name');
@@ -765,27 +72,194 @@ function logout() {
 function apiHeaders() {
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionStorage.getItem('aro_admin_token')}`
+        'Authorization': 'Bearer ' + sessionStorage.getItem('aro_admin_token'),
     };
 }
 
-function showToast(msg, type = 'success') {
+/* ── Dashboard ── */
+async function loadDashboard() {
+    await Promise.all([loadVentas(), loadVisits(), loadReservations()]);
+    renderClicks();
+}
+
+// Ventas reales del generador
+async function loadVentas() {
+    const badge = document.getElementById('ventas-estado');
+    try {
+        const res = await fetch(`${API_URL}/api/ventas`);
+        const v = await res.json();
+
+        if (!v || !v.available) {
+            badge.textContent = 'Sin conexión al generador';
+            badge.classList.add('is-off');
+            return;
+        }
+
+        badge.textContent = 'Conectado ✓';
+        badge.classList.remove('is-off');
+
+        ['general', 'vip', 'ultra'].forEach((cat) => {
+            const c = v[cat];
+            if (!c) return;
+            document.getElementById(`v-${cat}-sold`).textContent = c.sold;
+            document.getElementById(`v-${cat}-left`).textContent = c.left;
+            document.getElementById(`v-${cat}-cap`).textContent = c.cap;
+            const pct = c.cap ? Math.min(100, Math.round((c.sold / c.cap) * 100)) : 0;
+            document.getElementById(`v-${cat}-bar`).style.width = pct + '%';
+        });
+
+        document.getElementById('v-total-sold').textContent = v.total.sold;
+        document.getElementById('v-total-left').textContent = v.total.left;
+        if (v.updatedAt) {
+            const d = new Date(v.updatedAt);
+            document.getElementById('v-updated').textContent =
+                'Actualizado ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+    } catch (err) {
+        badge.textContent = 'Error al leer ventas';
+        badge.classList.add('is-off');
+    }
+}
+
+// Visitas a la página
+async function loadVisits() {
+    try {
+        const res = await fetch(`${API_URL}/api/stats`, { headers: apiHeaders() });
+        if (res.status === 401) return logout();
+        const data = await res.json();
+        document.getElementById('stat-visits').textContent = data.visits ?? 0;
+    } catch (err) { /* silencioso */ }
+}
+
+// Clics de apartar (reservas)
+async function loadReservations() {
+    try {
+        const search = document.getElementById('filter-search').value;
+        let url = `${API_URL}/api/reservations?limit=500`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const res = await fetch(url, { headers: apiHeaders() });
+        if (res.status === 401) return logout();
+        const data = await res.json();
+
+        currentReservations = data.reservations || [];
+        renderReservationsTable();
+        renderClicks();
+    } catch (err) {
+        showToast('Error cargando clics', 'error');
+    }
+}
+
+function renderClicks() {
+    const active = currentReservations.filter((r) => r.status !== 'cancelled');
+
+    let totalQty = 0, totalRev = 0;
+    active.forEach((r) => {
+        totalQty += r.quantity;
+        totalRev += r.quantity * r.price_each;
+    });
+    document.getElementById('stat-total-qty').textContent = totalQty;
+    document.getElementById('stat-total-rev').textContent = '$' + totalRev.toFixed(0);
+
+    // Por fase
+    const byPhase = {};
+    active.forEach((r) => {
+        const f = r.fase || '—';
+        byPhase[f] = (byPhase[f] || 0) + r.quantity;
+    });
+    const phaseBody = document.getElementById('phase-table-body');
+    const phaseRows = Object.entries(byPhase).sort((a, b) => orderOf(a[0]) - orderOf(b[0]));
+    phaseBody.innerHTML = phaseRows.length
+        ? phaseRows.map(([f, n]) => `<tr><td><strong>${f}</strong></td><td>${n}</td></tr>`).join('')
+        : '<tr><td colspan="2" class="muted">Aún no hay clics</td></tr>';
+
+    // Por nivel y fase
+    const combo = {};
+    active.forEach((r) => {
+        const key = `${r.ticket_type}|${r.fase || '—'}`;
+        if (!combo[key]) combo[key] = { nivel: r.ticket_type, fase: r.fase || '—', n: 0 };
+        combo[key].n += r.quantity;
+    });
+    const bBody = document.getElementById('breakdown-table-body');
+    const rows = Object.values(combo).sort((a, b) =>
+        a.nivel.localeCompare(b.nivel) || orderOf(a.fase) - orderOf(b.fase)
+    );
+    bBody.innerHTML = rows.length
+        ? rows.map((c) => `
+            <tr>
+                <td><span class="pill pill--${catDe(c.nivel)}">${c.nivel}</span></td>
+                <td>${c.fase}</td>
+                <td>${c.n}</td>
+            </tr>`).join('')
+        : '<tr><td colspan="3" class="muted">Aún no hay clics</td></tr>';
+}
+
+/* ── Historial de clics ── */
+function timeAgo(date) {
+    const s = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (s < 60) return 'Hace un momento';
+    if (s < 3600) return 'Hace ' + Math.floor(s / 60) + ' min';
+    if (s < 86400) return 'Hace ' + Math.floor(s / 3600) + ' h';
+    return 'Hace ' + Math.floor(s / 86400) + ' d';
+}
+
+function renderReservationsTable() {
+    const tbody = document.getElementById('reservations-table-body');
+    if (currentReservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="muted">Aún no hay clics registrados</td></tr>';
+        return;
+    }
+    tbody.innerHTML = currentReservations.map((r) => {
+        const d = new Date(r.created_at);
+        const fecha = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return `
+            <tr>
+                <td class="muted">#${r.id}</td>
+                <td><div>${timeAgo(r.created_at)}</div><div style="font-size:10px;color:var(--muted)">${fecha}</div></td>
+                <td><span class="pill pill--${catDe(r.ticket_type)}">${r.ticket_type}</span></td>
+                <td>${r.fase || '—'}</td>
+                <td>$${r.price_each}</td>
+                <td><button class="link-del" title="Eliminar" onclick="deleteReservation(${r.id})">🗑</button></td>
+            </tr>`;
+    }).join('');
+}
+
+async function deleteReservation(id) {
+    if (!confirm('¿Eliminar este clic del registro?')) return;
+    try {
+        const res = await fetch(`${API_URL}/api/reservations/${id}`, { method: 'DELETE', headers: apiHeaders() });
+        if (res.status === 401) return logout();
+        if (!res.ok) throw new Error();
+        currentReservations = currentReservations.filter((x) => x.id !== id);
+        renderReservationsTable();
+        renderClicks();
+        showToast('Registro eliminado');
+    } catch (err) {
+        showToast('Error al eliminar', 'error');
+    }
+}
+
+/* ── Toast ── */
+function showToast(msg) {
     const c = document.getElementById('toast-container');
     const t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'} ${msg}</span>`;
+    t.textContent = msg;
     c.appendChild(t);
-    setTimeout(() => t.remove(), 4000);
+    setTimeout(() => t.remove(), 3500);
 }
 
-// INIT
-window.addEventListener('DOMContentLoaded', async () => {
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded', () => {
     if (sessionStorage.getItem('aro_admin_token')) {
+        const name = sessionStorage.getItem('aro_admin_name');
+        if (name) document.getElementById('admin-name').innerText = name;
         document.getElementById('login-container').style.display = 'none';
-        document.getElementById('app-container').style.display = 'flex';
-        const savedName = sessionStorage.getItem('aro_admin_name');
-        if (savedName) document.getElementById('admin-name').innerText = savedName;
-        await loadConfig();
+        document.getElementById('app-container').style.display = 'block';
         loadDashboard();
     }
+    // Refresca ventas reales cada 60s
+    setInterval(() => {
+        if (sessionStorage.getItem('aro_admin_token')) loadVentas();
+    }, 60000);
 });

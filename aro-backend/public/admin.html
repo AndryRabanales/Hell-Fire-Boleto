@@ -1,285 +1,182 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-MX">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HELL FIRE — Panel de Administración</title>
-    <link rel="stylesheet" href="admin.css?v=5">
+    <meta name="theme-color" content="#14100e">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="admin.css?v=6">
     <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d9282c'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
 </head>
 
 <body>
 
-    <!-- ==========================================
-       LOGIN SCREEN
-  =========================================== -->
-    <div id="login-container"
-        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; z-index: 1;">
+    <!-- ══════════ LOGIN ══════════ -->
+    <div id="login-container" class="login-wrap">
         <div class="login-card">
-            <div class="login-logo">🔒</div>
-            <div class="login-title">HELL FIRE Admin</div>
-            <div class="login-subtitle">Acceso restringido — Solo administradores</div>
+            <div class="login-logo">Hell <span>Fire</span></div>
+            <div class="login-subtitle">Panel de administración · acceso restringido</div>
 
-            <div>
-                <label class="form-label">CORREO ELECTRÓNICO</label>
-                <input type="email" id="login-email" class="form-input" placeholder="admin@hellfire.com"
-                    autocomplete="email">
-            </div>
-            <div>
-                <label class="form-label">CONTRASEÑA</label>
-                <input type="password" id="login-password" class="form-input" placeholder="••••••••">
-            </div>
+            <label class="field-label">Correo</label>
+            <input type="email" id="login-email" class="field" placeholder="admin@hellfire.com" autocomplete="email">
+
+            <label class="field-label">Contraseña</label>
+            <input type="password" id="login-password" class="field" placeholder="••••••••">
 
             <div id="login-error" class="login-error"></div>
-
-            <button class="btn-login" id="btn-login" onclick="handleLogin()">Entrar al Panel</button>
+            <button class="btn-primary btn-block" id="btn-login" onclick="handleLogin()">Entrar</button>
         </div>
     </div>
 
-    <!-- ==========================================
-       ADMIN APP (Hidden until login)
-  =========================================== -->
-    <div id="app-container" class="app-layout" style="display: none;">
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3>HELL FIRE Panel</h3>
-                <p>Hola, <span id="admin-name">Admin</span></p>
+    <!-- ══════════ APP ══════════ -->
+    <div id="app-container" class="app" style="display:none;">
+        <header class="topbar">
+            <div class="topbar__brand">Hell <span>Fire</span> · Panel</div>
+            <div class="topbar__right">
+                <span class="topbar__user">Hola, <span id="admin-name">Admin</span></span>
+                <button class="btn-ghost" onclick="loadDashboard()">Actualizar</button>
+                <button class="btn-ghost btn-ghost--danger" onclick="logout()">Salir</button>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-btn active" onclick="switchView('data', this)">📊 Panel de Datos</button>
-                <button class="nav-btn" onclick="switchView('editor', this)">🎨 Editor Visual</button>
-            </nav>
-            <button class="btn-logout" onclick="logout()">Cerrar Sesión 🚪</button>
-        </aside>
+        </header>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="main-content">
+        <main class="content">
 
-            <!-- VIEW: DATA & STATS -->
-            <div id="view-data" class="main-view active">
-                <!-- DASHBOARD -->
-                <section id="section-dashboard" class="content-section active">
-                    <header class="section-header">
-                        <h2>📊 Resumen General</h2>
-                        <button class="btn-secondary" onclick="loadDashboard()">Actualizar 🔄</button>
-                    </header>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-title">Visitas a la página</div>
-                            <div class="stat-value" id="stat-visits">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-title">Apartados (click en Apartar)</div>
-                            <div class="stat-value" id="stat-total-qty">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-title">Ingresos Potenciales</div>
-                            <div class="stat-value" id="stat-total-rev">$0</div>
-                        </div>
+            <!-- ── VENTAS REALES (conectado al generador) ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Ventas reales</h2>
+                    <span class="panel__badge" id="ventas-estado">Conectando…</span>
+                </div>
+
+                <div class="stats-grid stats-grid--3">
+                    <div class="stat-card stat-card--general">
+                        <div class="stat-card__label">General <small>(Uady + Externo)</small></div>
+                        <div class="stat-card__value" id="v-general-sold">0</div>
+                        <div class="stat-card__meta"><span id="v-general-left">0</span> disponibles de <span
+                                id="v-general-cap">0</span></div>
+                        <div class="mini-bar"><i id="v-general-bar"></i></div>
                     </div>
-
-                    <h3>Apartados por Fase</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Fase</th>
-                                    <th>Apartados</th>
-                                    <th>Ingreso</th>
-                                </tr>
-                            </thead>
-                            <tbody id="phase-table-body">
-                                <tr>
-                                    <td colspan="3" class="text-center">Cargando...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="stat-card stat-card--vip">
+                        <div class="stat-card__label">VIP</div>
+                        <div class="stat-card__value" id="v-vip-sold">0</div>
+                        <div class="stat-card__meta"><span id="v-vip-left">0</span> disponibles de <span
+                                id="v-vip-cap">0</span></div>
+                        <div class="mini-bar"><i id="v-vip-bar"></i></div>
                     </div>
-
-                    <h3 style="margin-top:30px;">Desglose por Boleto y Fase</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Boleto</th>
-                                    <th>Fase</th>
-                                    <th>Precio</th>
-                                    <th>Apartados</th>
-                                    <th>Ingreso</th>
-                                </tr>
-                            </thead>
-                            <tbody id="breakdown-table-body">
-                                <tr>
-                                    <td colspan="5" class="text-center">Cargando...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- RESERVATIONS -->
-                <section id="section-reservations" class="content-section active" style="margin-top:40px;">
-                    <header class="section-header">
-                        <h2>📋 Todas las Reservas</h2>
-                        <div style="display:flex; gap:10px;">
-                            <select id="filter-status" onchange="loadReservations()" class="input-light">
-                                <option value="">Todos los estados</option>
-                                <option value="pending">Pendientes (⏳)</option>
-                                <option value="confirmed">Confirmados (✅)</option>
-                                <option value="cancelled">Cancelados (❌)</option>
-                            </select>
-                            <input type="text" id="filter-search" placeholder="🔍 Buscar Instagram..."
-                                class="input-light" onkeyup="if(event.key==='Enter') loadReservations()">
-                            <button class="btn-primary" onclick="loadReservations()">Buscar</button>
-                        </div>
-                    </header>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Fecha</th>
-                                    <th>Instagram</th>
-                                    <th>WhatsApp</th>
-                                    <th>Categoría</th>
-                                    <th>Fase</th>
-                                    <th>Cant.</th>
-                                    <th>Pago (c/u)</th>
-                                    <th>Estado</th>
-                                    <th>Notas</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reservations-table-body">
-                                <tr>
-                                    <td colspan="11" class="text-center">Cargando...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-
-            <!-- VIEW: VISUAL EDITOR (Split screen) -->
-            <div id="view-editor" class="main-view">
-                <div class="editor-split">
-                    <!-- Control Panel -->
-                    <div class="editor-sidebar">
-                        <header class="editor-sidebar-header">
-                            <h2>🎨 Personalización</h2>
-                            <p>Cambios visibles al instante</p>
-                        </header>
-
-                        <div class="editor-tabs">
-                            <button class="tab-btn active" onclick="showTab('tab-general', this)">General</button>
-                            <button class="tab-btn" onclick="showTab('tab-tickets', this)">Boletos</button>
-                            <button class="tab-btn" onclick="showTab('tab-phases', this)">Fases</button>
-                            <button class="tab-btn" onclick="showTab('tab-rewards', this)">Promociones</button>
-                        </div>
-
-                        <!-- Tab: General Info -->
-                        <div id="tab-general" class="tab-content active">
-                            <div class="editor-form-group">
-                                <label>Título del Evento</label>
-                                <input type="text" id="edit-title" class="editor-input" oninput="syncPreview()">
-                            </div>
-                            <div class="editor-form-group">
-                                <label>Subtítulo</label>
-                                <textarea id="edit-subtitle" class="editor-input" oninput="syncPreview()"
-                                    rows="3"></textarea>
-                            </div>
-                            <div class="editor-form-group">
-                                <label>Fecha Visible</label>
-                                <input type="text" id="edit-date-text" class="editor-input" oninput="syncPreview()">
-                            </div>
-                            <div class="editor-toggle-list">
-                                <label class="toggle-row">
-                                    <input type="checkbox" id="toggle-timer" onchange="syncPreview()">
-                                    <span>Mostrar Cuenta Regresiva</span>
-                                </label>
-                                <label class="toggle-row">
-                                    <input type="checkbox" id="toggle-phase-alert" onchange="syncPreview()">
-                                    <span>Mostrar Alerta de Fase</span>
-                                </label>
-                            </div>
-                            <div class="editor-form-group">
-                                <label>📱 Redes Sociales</label>
-                                <input type="text" id="edit-whatsapp" class="editor-input" placeholder="WhatsApp Number"
-                                    oninput="syncPreview()">
-                                <input type="text" id="edit-instagram" class="editor-input" placeholder="Instagram URL"
-                                    oninput="syncPreview()" style="margin-top:8px;">
-                                <input type="text" id="edit-tiktok" class="editor-input" placeholder="TikTok URL"
-                                    oninput="syncPreview()" style="margin-top:8px;">
-                            </div>
-                        </div>
-
-                        <!-- Tab: Tickets -->
-                        <div id="tab-tickets" class="tab-content">
-                            <div id="editor-tickets-list" class="editor-items-list">
-                                <!-- Managed via JS -->
-                            </div>
-                            <button class="btn-ghost" onclick="openTicketModal()">✚ Agregar Nuevo Boleto</button>
-                        </div>
-
-                        <!-- Tab: Phases -->
-                        <div id="tab-phases" class="tab-content">
-                            <div id="editor-phases-list" class="editor-items-list">
-                                <!-- Managed via JS -->
-                            </div>
-                            <button class="btn-ghost" onclick="addPhaseRow()">✚ Nueva Fase</button>
-                        </div>
-
-                        <!-- Tab: Rewards -->
-                        <div id="tab-rewards" class="tab-content">
-                            <div id="editor-rewards-list" class="editor-items-list">
-                                <!-- Managed via JS -->
-                            </div>
-                            <button class="btn-ghost" onclick="addRewardRow()">✚ Nueva Promoción</button>
-                        </div>
-
-                        <div class="editor-footer">
-                            <button class="btn-success w-full" onclick="saveVisualChanges()">✅ Guardar Cambios
-                                Permanentemente</button>
-                        </div>
-                    </div>
-
-                    <!-- Live Preview -->
-                    <div class="editor-preview">
-                        <div class="preview-toolbar">
-                            <div class="preview-url">
-                                <span>🌐 hell-fire-boleto-production.up.railway.app</span>
-                            </div>
-                            <button class="btn-preview-refresh" onclick="refreshPreview()">🔄</button>
-                        </div>
-                        <div class="preview-container">
-                            <iframe id="preview-iframe" src="index.html"></iframe>
-                        </div>
+                    <div class="stat-card stat-card--ultra">
+                        <div class="stat-card__label">Ultra VIP</div>
+                        <div class="stat-card__value" id="v-ultra-sold">0</div>
+                        <div class="stat-card__meta"><span id="v-ultra-left">0</span> disponibles de <span
+                                id="v-ultra-cap">0</span></div>
+                        <div class="mini-bar"><i id="v-ultra-bar"></i></div>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
+                <p class="panel__note">Total vendidos: <b id="v-total-sold">0</b> · Disponibles: <b
+                        id="v-total-left">0</b> <span class="panel__ts" id="v-updated"></span></p>
+            </section>
 
-    <!-- MODAL PARA TICKET EDITOR -->
-    <div class="modal-overlay" id="ticket-modal" style="display:none;">
-        <div class="modal">
-            <h3 id="ticket-modal-title">Editar Boleto</h3>
-            <div id="ticket-modal-body" style="max-height: 70vh; overflow-y:auto; padding-right:10px;">
-                <!-- Inject form fields via JS -->
-            </div>
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn-success" style="flex:1" onclick="saveTicketModal()">Guardar</button>
-                <button class="btn-secondary" style="flex:1" onclick="closeTicketModal()">Cancelar</button>
-            </div>
-        </div>
+            <!-- ── CLICKS EN APARTAR (nuestra página) ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Clics en “Apartar” (nuestra página)</h2>
+                </div>
+
+                <div class="stats-grid stats-grid--3">
+                    <div class="stat-card">
+                        <div class="stat-card__label">Visitas a la página</div>
+                        <div class="stat-card__value" id="stat-visits">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label">Apartados (clics)</div>
+                        <div class="stat-card__value" id="stat-total-qty">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label">Interés potencial</div>
+                        <div class="stat-card__value" id="stat-total-rev">$0</div>
+                    </div>
+                </div>
+
+                <h3 class="sub">Apartados por fase</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fase</th>
+                                <th>Clics</th>
+                            </tr>
+                        </thead>
+                        <tbody id="phase-table-body">
+                            <tr>
+                                <td colspan="2" class="muted">Cargando…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="sub">Apartados por nivel y fase</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nivel</th>
+                                <th>Fase</th>
+                                <th>Clics</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdown-table-body">
+                            <tr>
+                                <td colspan="3" class="muted">Cargando…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ── HISTORIAL DE CLICS ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Historial de clics</h2>
+                    <div class="filters">
+                        <input type="text" id="filter-search" class="field field--sm" placeholder="Buscar…"
+                            onkeyup="if(event.key==='Enter') loadReservations()">
+                        <button class="btn-ghost" onclick="loadReservations()">Buscar</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cuándo</th>
+                                <th>Nivel</th>
+                                <th>Fase</th>
+                                <th>Precio</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-table-body">
+                            <tr>
+                                <td colspan="6" class="muted">Cargando…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- filtro de estado oculto (compatibilidad con loadReservations) -->
+                <select id="filter-status" style="display:none;">
+                    <option value=""></option>
+                </select>
+            </section>
+
+        </main>
     </div>
 
     <div id="toast-container"></div>
     <script src="admin.js?v=6"></script>
-
 </body>
 
 </html>
