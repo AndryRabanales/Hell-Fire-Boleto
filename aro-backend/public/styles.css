@@ -823,3 +823,41 @@ a:hover { color: #ff7a2e; }
   transition: filter .25s;
 }
 .cta-flotante:hover { filter: brightness(1.12); color: #fff; }
+
+/* ============================================================
+   VENTAS REALES (FOMO) — vendidos / disponibles por nivel
+   ============================================================ */
+.tier__stock {
+  margin: 11px 0 0 19px;
+  max-width: 320px;
+}
+.tier__stock:empty { display: none; }
+
+.tier__stock-bar {
+  height: 6px;
+  background: rgba(20, 16, 14, .1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.tier__stock-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--sangre), var(--oro));
+  border-radius: 99px;
+  transition: width 1s var(--ease-out);
+}
+
+.tier__stock-txt {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.tier__stock-sold { color: var(--sangre); }
+.tier__stock-left { color: rgba(20, 16, 14, .5); }

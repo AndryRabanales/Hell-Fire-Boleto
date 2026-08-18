@@ -132,6 +132,35 @@ function abrirWhatsApp(label, precioTexto) {
   window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
+/* ── Ventas reales (desde el sistema generador) para el FOMO ── */
+
+// Cada nivel de la página se mapea a una categoría del generador:
+// General = Uady + Externo · VIP = VIP · Ultra VIP = Ultra vip
+function catDeTier(id) {
+  return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : 'general');
+}
+
+async function cargarVentas() {
+  try {
+    const res = await fetch('/api/ventas');
+    const v = await res.json();
+    if (!v || !v.available) return; // sin conexión al generador: no mostramos números
+
+    document.querySelectorAll('.tier__stock').forEach((el) => {
+      const c = v[el.getAttribute('data-cat')];
+      if (!c) return;
+      const pct = c.cap ? Math.min(100, Math.round((c.sold / c.cap) * 100)) : 0;
+      el.innerHTML =
+        '<div class="tier__stock-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="tier__stock-txt">' +
+          '<span class="tier__stock-sold">🔥 ' + c.sold + ' vendidos</span>' +
+          '<span class="tier__stock-left">' + c.left + ' disponibles</span>' +
+        '</div>';
+      el.classList.add('is-shown');
+    });
+  } catch (e) { /* silencioso */ }
+}
+
 /* ── Boletos ── */
 
 function pintarBoletos(phase) {
@@ -161,6 +190,7 @@ function pintarBoletos(phase) {
       '</div>' +
       '<div class="tier__incluye">' + tk.incluye + '</div>' +
       '<div class="tier__perks">' + perks + '</div>' +
+      '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
       '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
 
     wrap.querySelector('.tier__btn').addEventListener('click', () => {
@@ -172,6 +202,9 @@ function pintarBoletos(phase) {
 
     cont.appendChild(wrap);
   });
+
+  // Al repintar los boletos, rellenamos las ventas reales
+  cargarVentas();
 }
 
 /* ── Línea de tiempo de fases ── */
@@ -285,6 +318,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tick();
   setInterval(tick, 1000);
+
+  // Refresca las ventas reales cada 60s (FOMO en vivo)
+  setInterval(cargarVentas, 60000);
 
   arrancarVideos();
 

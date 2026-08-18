@@ -35,10 +35,59 @@ async function tablaExiste(pool, name) {
     return r.rows.length > 0;
 }
 
-// GET /api/ventas/inspect — TEMPORAL y abierto: descubre el esquema (tablas +
-// columnas + conteos). Solo expone metadatos y números, ningún dato personal.
-// Se elimina en cuanto quede conectada la consulta real de ventas.
-router.get('/inspect', async (req, res) => {
+// ── Cupos por categoría (para "disponibles") ──
+const CUPOS = { general: 1500, vip: 700, ultra: 150 };
+
+// Cache en memoria para no golpear la base del generador en cada visita
+let ventasCache = { data: null, ts: 0 };
+const VENTAS_TTL = 30000; // 30s
+
+// GET /api/ventas — público: boletos vendidos / disponibles por categoría.
+// "vendidos" = boletos generados NO anulados (status <> 'void').
+router.get('/', async (req, res) => {
+    const pool = getVentasPool();
+    if (!pool) return res.json({ available: false });
+
+    const now = Date.now();
+    if (ventasCache.data && now - ventasCache.ts < VENTAS_TTL) {
+        return res.json(ventasCache.data);
+    }
+
+    try {
+        const r = await pool.query(
+            "SELECT type_name, COUNT(*)::int AS n FROM tickets WHERE status <> 'void' GROUP BY type_name"
+        );
+
+        let general = 0, vip = 0, ultra = 0;
+        r.rows.forEach((row) => {
+            const t = (row.type_name || '').toLowerCase();
+            if (t.includes('ultra')) ultra += row.n;      // "Ultra vip"
+            else if (t.includes('vip')) vip += row.n;     // "VIP"
+            else general += row.n;                        // "Uady", "Externo"
+        });
+
+        const mk = (sold, cap) => ({ sold, cap, left: Math.max(0, cap - sold) });
+        const data = {
+            available: true,
+            general: mk(general, CUPOS.general),
+            vip: mk(vip, CUPOS.vip),
+            ultra: mk(ultra, CUPOS.ultra),
+            total: mk(general + vip + ultra, CUPOS.general + CUPOS.vip + CUPOS.ultra),
+            updatedAt: new Date().toISOString(),
+        };
+
+        ventasCache = { data, ts: now };
+        res.json(data);
+    } catch (err) {
+        console.error('Ventas count error:', err.message);
+        // Si falla, devolvemos lo último cacheado (si hay) para no romper el FOMO
+        if (ventasCache.data) return res.json(ventasCache.data);
+        res.json({ available: false, error: err.message });
+    }
+});
+
+// GET /api/ventas/inspect — admin: descubre el esquema (tablas + columnas + conteos).
+router.get('/inspect', auth, async (req, res) => {
     const pool = getVentasPool();
     if (!pool) return res.status(503).json({ error: 'VENTAS_DATABASE_URL no configurada' });
 
