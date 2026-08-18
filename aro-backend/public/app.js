@@ -15,24 +15,28 @@ const CONFIG = {
   // Cambia las fechas y los precios aquí y toda la página se actualiza.
   phases: [
     {
+      // Preventa: activa hasta que arranca la FASE 2 (2 sep 00:00)
       name: 'Preventa',
-      end: '2026-09-15T23:59:59-06:00',
-      date: 'Hasta 15 Sep',
+      end: '2026-09-02T00:00:00-06:00',
+      date: 'Hasta 1 Sep',
       prices: { uady: 150, ext: 175, vip: 350, ultra: 900 },
     },
     {
+      // Venta regular: 2 sep — arranca FASE 3 el 17 sep 00:00
       name: 'Venta regular',
-      end: '2026-10-10T23:59:59-06:00',
-      date: 'Hasta 10 Oct',
+      end: '2026-09-17T00:00:00-06:00',
+      date: 'Hasta 16 Sep',
       prices: { uady: 180, ext: 200, vip: 400, ultra: 900 },
     },
     {
+      // Última llamada: 17 sep — arranca FASE 4 el 17 oct 00:00
       name: 'Última llamada',
-      end: '2026-10-30T23:59:59-06:00',
-      date: 'Hasta 30 Oct',
+      end: '2026-10-17T00:00:00-06:00',
+      date: 'Hasta 16 Oct',
       prices: { uady: 200, ext: 250, vip: 450, ultra: 900 },
     },
     {
+      // Mero día: 17 oct — hasta el evento (31 oct)
       name: 'Mero día',
       end: '2026-10-31T23:59:59-06:00',
       date: '31 Oct',
