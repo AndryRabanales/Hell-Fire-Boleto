@@ -893,3 +893,56 @@ a:hover { color: #ff7a2e; }
   color: rgba(20, 16, 14, .78);
 }
 .fase-nota__txt b { color: var(--tinta); }
+
+/* ============================================================
+   COMPACTACIÓN DE ALTURA (móvil) — menos espacio vertical
+   ============================================================ */
+/* Espaciadores (dan aire a los videos) — más chicos */
+.spacer-96  { height: 48px; }
+.spacer-110 { height: 60px; }
+.spacer-120 { height: 66px; }
+
+/* Portada / hero */
+.portada { padding-top: 12px; }
+.hero-title__word { font-size: 50px; }
+.hero-sub { margin-top: 8px; }
+
+/* Banda */
+.banda { padding: 10px 18px; }
+
+/* Boletos */
+.boletos { padding-top: 16px; }
+.fase-nota { margin: 12px 0 4px; padding: 11px 13px; }
+.fase-nota__txt { font-size: 12px; line-height: 1.45; }
+.tiers { gap: 14px; margin-top: 14px; }
+.tier__incluye { margin-top: 6px; }
+.tier__perks { gap: 3px; margin-top: 6px; }
+.tier__perk-texto { font-size: 13px; }
+.tier__btn { margin-top: 10px; padding: 10px 20px; }
+.sello { margin-top: 20px; padding: 12px 18px; }
+
+/* Fases / reloj */
+.fases { padding: 18px 18px 14px; }
+.reloj { margin-top: 14px; gap: 6px; }
+.reloj__caja { padding: 10px 4px; }
+.reloj__num { font-size: 24px; }
+.timeline { margin-top: 16px; }
+.fase { padding: 8px 0 8px 24px; }
+
+/* Lugar */
+.lugar { padding-top: 16px; }
+.bloque--oro  { margin-top: 10px; }
+.bloque--rojo { margin-top: 10px; }
+
+/* Reglas */
+.reglas { padding: 16px 18px 20px; }
+.reglas__lista { gap: 6px; margin-top: 14px; }
+.regla { padding: 6px 0 6px 13px; }
+
+/* Footer */
+.footer { padding: 18px 18px 78px; }
+.footer__redes { margin-top: 12px; }
+.footer__copy { margin-top: 12px; }
+
+/* Cupos/stock por tipo */
+.tier__stock { margin-top: 9px; }
