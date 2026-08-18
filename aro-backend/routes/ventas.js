@@ -29,7 +29,26 @@ async function getConfigNums(key, def) {
 }
 
 const getBoost = () => getConfigNums('ventas_boost', { general: 0, vip: 0, ultra: 0 });
-const getCupos = () => getConfigNums('ventas_cupos', CUPOS);
+
+// Cupo por FASE y tipo. Estructura: { "Preventa": {general,vip,ultra}, ... }
+const CUPO_FASE_DEF = { general: 400, vip: 180, ultra: 40 };
+async function getCuposFase(faseName) {
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'ventas_cupos_fase'");
+        if (row) {
+            const all = JSON.parse(row.value);
+            const f = all[faseName];
+            if (f) {
+                return {
+                    general: Number.isFinite(parseInt(f.general)) ? parseInt(f.general) : CUPO_FASE_DEF.general,
+                    vip: Number.isFinite(parseInt(f.vip)) ? parseInt(f.vip) : CUPO_FASE_DEF.vip,
+                    ultra: Number.isFinite(parseInt(f.ultra)) ? parseInt(f.ultra) : CUPO_FASE_DEF.ultra,
+                };
+            }
+        }
+    } catch (e) { /* usa def */ }
+    return { ...CUPO_FASE_DEF };
+}
 
 let ventasPool = null;
 function getVentasPool() {
@@ -70,7 +89,9 @@ router.get('/', async (req, res) => {
 
     const now = Date.now();
     const fresh = req.query.fresh === '1';
-    if (!fresh && ventasCache.data && now - ventasCache.ts < VENTAS_TTL) {
+    const faseName = (req.query.fase || '').toString().trim() || 'Preventa';
+    const cacheKey = faseName;
+    if (!fresh && ventasCache.data && ventasCache.key === cacheKey && now - ventasCache.ts < VENTAS_TTL) {
         return res.json(ventasCache.data);
     }
 
@@ -87,9 +108,9 @@ router.get('/', async (req, res) => {
             else general += row.n;                        // "Uady", "Externo"
         });
 
-        // Ajuste manual (compras extra) y cupos editables desde el panel
+        // Compras extra (por tipo) + cupo de la FASE seleccionada (por tipo)
         const boost = await getBoost();
-        const cupos = await getCupos();
+        const cupos = await getCuposFase(faseName);
         const mk = (real, extra, cap) => {
             const sold = real + extra;
             return { sold, real, boost: extra, cap, left: Math.max(0, cap - sold) };
@@ -101,6 +122,7 @@ router.get('/', async (req, res) => {
 
         const data = {
             available: true,
+            fase: faseName,
             general: g,
             vip: vp,
             ultra: u,
@@ -114,7 +136,7 @@ router.get('/', async (req, res) => {
             updatedAt: new Date().toISOString(),
         };
 
-        ventasCache = { data, ts: now };
+        ventasCache = { data, ts: now, key: cacheKey };
         res.json(data);
     } catch (err) {
         console.error('Ventas count error:', err.message);

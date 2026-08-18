@@ -142,7 +142,8 @@ function catDeTier(id) {
 
 async function cargarVentas() {
   try {
-    const res = await fetch('/api/ventas');
+    const fase = faseActual ? faseActual.name : (faseActiva(Date.now()).name);
+    const res = await fetch('/api/ventas?fase=' + encodeURIComponent(fase));
     const v = await res.json();
     if (!v || !v.available) return; // sin conexión al generador: no mostramos números
 

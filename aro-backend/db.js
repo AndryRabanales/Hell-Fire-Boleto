@@ -140,7 +140,12 @@ async function initDB() {
     ]`],
     ['visits', '0'],
     ['ventas_boost', '{"general":0,"vip":0,"ultra":0}'],
-    ['ventas_cupos', '{"general":1500,"vip":700,"ultra":150}']
+    ['ventas_cupos_fase', `{
+      "Preventa":       { "general": 400, "vip": 180, "ultra": 40 },
+      "Venta regular":  { "general": 400, "vip": 180, "ultra": 40 },
+      "Última llamada": { "general": 400, "vip": 180, "ultra": 40 },
+      "Mero día":       { "general": 300, "vip": 160, "ultra": 30 }
+    }`]
   ];
 
   for (const [key, value] of initConfig) {
