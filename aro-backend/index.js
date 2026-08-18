@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const reservationsRoutes = require('./routes/reservations');
 const configRoutes = require('./routes/config');
 const statsRoutes = require('./routes/stats');
+const ventasRoutes = require('./routes/ventas');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/ventas', ventasRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
