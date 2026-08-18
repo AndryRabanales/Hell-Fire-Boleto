@@ -253,7 +253,21 @@ function tick() {
     faseActual = phase;
     pintarBoletos(phase);
     pintarFases(phase);
-    document.getElementById('phase-label').textContent = phase.name + ' termina en';
+
+    const total = CONFIG.phases.length;
+    const idx = CONFIG.phases.indexOf(phase) + 1;
+    document.getElementById('phase-label').textContent =
+      'Fase ' + idx + '/' + total + ' · ' + phase.name + ' termina en';
+
+    const nota = document.getElementById('fase-nota');
+    if (nota) {
+      nota.innerHTML =
+        '<span class="fase-nota__tag">Fase ' + idx + ' de ' + total + '</span>' +
+        '<span class="fase-nota__txt">Vendemos en <b>' + total + ' fases</b> y cada una libera un <b>cupo limitado</b> ' +
+        'de boletos por tipo. Ahora estás en la <b>' + phase.name + '</b>. Cuando se agota el cupo o termina el ' +
+        'cronómetro, el precio sube.</span>';
+    }
+
     revelar();
   }
 

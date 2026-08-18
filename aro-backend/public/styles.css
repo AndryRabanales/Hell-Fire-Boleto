@@ -861,3 +861,35 @@ a:hover { color: #ff7a2e; }
 }
 .tier__stock-sold { color: var(--sangre); }
 .tier__stock-left { color: rgba(20, 16, 14, .5); }
+
+/* ============================================================
+   NOTA DE FASE (explica el sistema de 4 fases)
+   ============================================================ */
+.fase-nota {
+  margin: 16px 0 4px;
+  padding: 13px 15px;
+  border-left: 3px solid var(--sangre);
+  background: rgba(217, 40, 44, .05);
+  border-radius: 4px;
+  max-width: 92%;
+}
+.fase-nota__tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--sangre);
+  padding: 3px 9px;
+  border-radius: 99px;
+  margin-bottom: 7px;
+}
+.fase-nota__txt {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(20, 16, 14, .78);
+}
+.fase-nota__txt b { color: var(--tinta); }
