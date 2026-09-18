@@ -12,43 +12,25 @@ const { getRow } = require('../db');
 
 const router = express.Router();
 
-// Lee un objeto {general,vip,ultra} de una clave de config, con valores por defecto
+const CATS = ['general', 'vip', 'ultra', 'backstage'];
+
+// Lee un objeto {general,vip,ultra,backstage} de una clave de config, con valores por defecto
 async function getConfigNums(key, def) {
+    const out = {};
     try {
         const row = await getRow('SELECT value FROM config WHERE key = $1', [key]);
-        if (row) {
-            const b = JSON.parse(row.value);
-            return {
-                general: Number.isFinite(parseInt(b.general)) ? parseInt(b.general) : def.general,
-                vip: Number.isFinite(parseInt(b.vip)) ? parseInt(b.vip) : def.vip,
-                ultra: Number.isFinite(parseInt(b.ultra)) ? parseInt(b.ultra) : def.ultra,
-            };
-        }
+        const b = row ? JSON.parse(row.value) : {};
+        CATS.forEach((c) => { out[c] = Number.isFinite(parseInt(b[c])) ? parseInt(b[c]) : def[c]; });
+        return out;
     } catch (e) { /* usa def */ }
     return { ...def };
 }
 
-const getBoost = () => getConfigNums('ventas_boost', { general: 0, vip: 0, ultra: 0 });
+const getBoost = () => getConfigNums('ventas_boost', { general: 0, vip: 0, ultra: 0, backstage: 0 });
 
-// Cupo por FASE y tipo. Estructura: { "Preventa": {general,vip,ultra}, ... }
-const CUPO_FASE_DEF = { general: 400, vip: 180, ultra: 40 };
-async function getCuposFase(faseName) {
-    try {
-        const row = await getRow("SELECT value FROM config WHERE key = 'ventas_cupos_fase'");
-        if (row) {
-            const all = JSON.parse(row.value);
-            const f = all[faseName];
-            if (f) {
-                return {
-                    general: Number.isFinite(parseInt(f.general)) ? parseInt(f.general) : CUPO_FASE_DEF.general,
-                    vip: Number.isFinite(parseInt(f.vip)) ? parseInt(f.vip) : CUPO_FASE_DEF.vip,
-                    ultra: Number.isFinite(parseInt(f.ultra)) ? parseInt(f.ultra) : CUPO_FASE_DEF.ultra,
-                };
-            }
-        }
-    } catch (e) { /* usa def */ }
-    return { ...CUPO_FASE_DEF };
-}
+// Cupo TOTAL por tipo (ya no por fase). Estructura: {general,vip,ultra,backstage}
+const CUPO_DEF = { general: 1000, vip: 600, ultra: 400, backstage: 60 };
+const getCupos = () => getConfigNums('ventas_cupos', CUPO_DEF);
 
 let ventasPool = null;
 function getVentasPool() {
@@ -194,9 +176,6 @@ router.get('/precios', async (req, res) => {
     }
 });
 
-// ── Cupos por categoría (para "disponibles") ──
-const CUPOS = { general: 1500, vip: 700, ultra: 150 };
-
 // Cache en memoria para no golpear la base del generador en cada visita
 let ventasCache = { data: null, ts: 0 };
 const VENTAS_TTL = 30000; // 30s
@@ -220,41 +199,31 @@ router.get('/', async (req, res) => {
             "SELECT type_name, COUNT(*)::int AS n FROM tickets WHERE status <> 'void' GROUP BY type_name"
         );
 
-        let general = 0, vip = 0, ultra = 0;
+        let general = 0, vip = 0, ultra = 0, backstage = 0;
         r.rows.forEach((row) => {
             const t = (row.type_name || '').toLowerCase();
-            if (t.includes('ultra')) ultra += row.n;      // "Ultra vip"
-            else if (t.includes('vip')) vip += row.n;     // "VIP"
-            else general += row.n;                        // "Uady", "Externo"
+            if (t.includes('ultra')) ultra += row.n;          // "Ultra vip"
+            else if (t.includes('backstage')) backstage += row.n; // "Backstage"
+            else if (t.includes('vip')) vip += row.n;         // "VIP"
+            else general += row.n;                            // "Uady", "Externo"
         });
+        const reales = { general, vip, ultra, backstage };
 
-        // Compras extra (por tipo) + cupo de la FASE seleccionada (por tipo)
+        // Compras extra (por tipo) + cupo TOTAL por tipo
         const boost = await getBoost();
-        const cupos = await getCuposFase(faseName);
+        const cupos = await getCupos();
         const mk = (real, extra, cap) => {
             const sold = real + extra;
             return { sold, real, boost: extra, cap, left: Math.max(0, cap - sold) };
         };
-        const g = mk(general, boost.general, cupos.general);
-        const vp = mk(vip, boost.vip, cupos.vip);
-        const u = mk(ultra, boost.ultra, cupos.ultra);
-        const capTotal = cupos.general + cupos.vip + cupos.ultra;
 
-        const data = {
-            available: true,
-            fase: faseName,
-            general: g,
-            vip: vp,
-            ultra: u,
-            total: {
-                sold: g.sold + vp.sold + u.sold,
-                real: general + vip + ultra,
-                boost: boost.general + boost.vip + boost.ultra,
-                cap: capTotal,
-                left: Math.max(0, capTotal - (g.sold + vp.sold + u.sold)),
-            },
-            updatedAt: new Date().toISOString(),
-        };
+        const data = { available: true, fase: faseName, updatedAt: new Date().toISOString() };
+        let tSold = 0, tReal = 0, tBoost = 0, tCap = 0;
+        CATS.forEach((c) => {
+            data[c] = mk(reales[c], boost[c], cupos[c]);
+            tSold += data[c].sold; tReal += reales[c]; tBoost += boost[c]; tCap += cupos[c];
+        });
+        data.total = { sold: tSold, real: tReal, boost: tBoost, cap: tCap, left: Math.max(0, tCap - tSold) };
 
         ventasCache = { data, ts: now, key: cacheKey };
         res.json(data);

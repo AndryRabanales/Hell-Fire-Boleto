@@ -139,13 +139,8 @@ async function initDB() {
       { "id": "4", "icon": "📱", "title": "Descuento Social", "description": "Comparte en tus historias de IG y obtén un 10% OFF." }
     ]`],
     ['visits', '0'],
-    ['ventas_boost', '{"general":0,"vip":0,"ultra":0}'],
-    ['ventas_cupos_fase', `{
-      "Fase 1": { "general": 400, "vip": 180, "ultra": 40 },
-      "Fase 2": { "general": 400, "vip": 180, "ultra": 40 },
-      "Fase 3": { "general": 400, "vip": 180, "ultra": 40 },
-      "Fase 4": { "general": 300, "vip": 160, "ultra": 30 }
-    }`],
+    ['ventas_boost', '{"general":0,"vip":0,"ultra":0,"backstage":0}'],
+    ['ventas_cupos', '{"general":1000,"vip":600,"ultra":400,"backstage":60}'],
     ['flash', '{"active":false,"uady":0,"externo":0,"vip":0,"ultra":0,"backstage":0,"label":"VENTA FLASH"}']
   ];
 

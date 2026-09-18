@@ -150,7 +150,7 @@ function abrirWhatsApp(label, precioTexto) {
 /* ── Estado de fase/precios (sincronizado o de respaldo) ── */
 
 function catDeTier(id) {
-  return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : (id === 'backstage' ? 'ultra' : 'general'));
+  return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : (id === 'backstage' ? 'backstage' : 'general'));
 }
 
 // Devuelve el estado actual unificado (desde SYNC del generador o CONFIG de respaldo)

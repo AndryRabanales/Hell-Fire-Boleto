@@ -138,11 +138,11 @@ async function loadBoostInputs() {
         const r = await fetch(`${API_URL}/api/config`);
         const c = await r.json();
         const b = c.ventas_boost || {};
-        ['general', 'vip', 'ultra'].forEach((cat) => {
+        ['general', 'vip', 'ultra', 'backstage'].forEach((cat) => {
             const bi = document.getElementById(`boost-${cat}`);
             if (bi && document.activeElement !== bi) bi.value = b[cat] ?? 0;
         });
-        renderCuposEditor(c.ventas_cupos_fase || {});
+        renderCuposEditor(c.ventas_cupos || {});
     } catch (e) { /* silencioso */ }
 }
 
@@ -165,7 +165,7 @@ async function loadVentas() {
         badge.textContent = 'Conectado ✓';
         badge.classList.remove('is-off');
 
-        ['general', 'vip', 'ultra'].forEach((cat) => {
+        ['general', 'vip', 'ultra', 'backstage'].forEach((cat) => {
             const c = v[cat];
             if (!c) return;
             document.getElementById(`v-${cat}-sold`).textContent = c.sold;
@@ -199,6 +199,7 @@ async function saveBoost() {
         general: parseInt(document.getElementById('boost-general').value) || 0,
         vip: parseInt(document.getElementById('boost-vip').value) || 0,
         ultra: parseInt(document.getElementById('boost-ultra').value) || 0,
+        backstage: parseInt(document.getElementById('boost-backstage').value) || 0,
     };
     try {
         const res = await fetch(`${API_URL}/api/config/ventas_boost`, {
@@ -223,44 +224,39 @@ async function loadVentasFresh() {
     window.__ventasFresh = orig;
 }
 
-// ── Cupos por fase y tipo ──
-const PHASES = ['Fase 1', 'Fase 2', 'Fase 3', 'Fase 4'];
-const TIPOS = [['general', 'General'], ['vip', 'VIP'], ['ultra', 'Ultra VIP']];
+// ── Cupo TOTAL por tipo (ya no por fase) ──
+const TIPOS = [['general', 'General'], ['vip', 'VIP'], ['ultra', 'Ultra VIP'], ['backstage', 'Backstage']];
 
-function renderCuposEditor(cuposFase) {
+function renderCuposEditor(cupos) {
     const cont = document.getElementById('cupos-fase-editor');
     if (!cont) return;
     // No re-renderizar si el usuario está escribiendo en un input de cupo
     if (cont.contains(document.activeElement)) return;
 
-    cont.innerHTML = PHASES.map((ph) => {
-        const c = (cuposFase && cuposFase[ph]) || {};
-        const inputs = TIPOS.map(([t, lbl]) => `
-            <label class="cupo-field">
-                <span>${lbl}</span>
-                <input type="number" min="0" class="field field--sm cupo-input"
-                    data-fase="${ph}" data-tipo="${t}" value="${c[t] ?? 0}">
-            </label>`).join('');
-        return `<div class="cupo-fase"><div class="cupo-fase__name">${ph}</div><div class="cupo-fase__row">${inputs}</div></div>`;
-    }).join('');
+    const inputs = TIPOS.map(([t, lbl]) => `
+        <label class="cupo-field">
+            <span>${lbl}</span>
+            <input type="number" min="0" class="field field--sm cupo-input"
+                data-tipo="${t}" value="${(cupos && cupos[t]) ?? 0}">
+        </label>`).join('');
+    cont.innerHTML = `<div class="cupo-fase__row">${inputs}</div>`;
 }
 
 async function saveCuposFase() {
-    const value = {};
-    PHASES.forEach((ph) => { value[ph] = { general: 0, vip: 0, ultra: 0 }; });
+    const value = { general: 0, vip: 0, ultra: 0, backstage: 0 };
     document.querySelectorAll('.cupo-input').forEach((inp) => {
-        const ph = inp.dataset.fase, t = inp.dataset.tipo;
-        if (value[ph]) value[ph][t] = parseInt(inp.value) || 0;
+        const t = inp.dataset.tipo;
+        if (t in value) value[t] = parseInt(inp.value) || 0;
     });
     try {
-        const res = await fetch(`${API_URL}/api/config/ventas_cupos_fase`, {
+        const res = await fetch(`${API_URL}/api/config/ventas_cupos`, {
             method: 'PUT',
             headers: apiHeaders(),
             body: JSON.stringify({ value }),
         });
         if (res.status === 401 || res.status === 403) return logout();
         if (!res.ok) throw new Error();
-        showToast('Cupos por fase guardados');
+        showToast('Cupos guardados');
         await loadVentasFresh();
     } catch (err) {
         showToast('Error al guardar los cupos', 'error');
