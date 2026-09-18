@@ -83,7 +83,7 @@ router.get('/precios-debug', async (req, res) => {
         const types = await pool.query('SELECT id, name, price_cents, is_vip, active, needs_faculty FROM ticket_types ORDER BY id');
         const phases = await pool.query('SELECT id, type_id, name, price_cents, starts_on, group_pct FROM price_phases ORDER BY type_id, starts_on');
         const settings = await pool.query(
-            "SELECT key, value FROM settings WHERE key ILIKE '%flash%' OR key ILIKE '%precio%' OR key ILIKE '%price%' OR key ILIKE '%venta%' OR key ILIKE '%fase%' OR key ILIKE '%phase%' OR key ILIKE '%grupo%' OR key ILIKE '%descuento%' OR key ILIKE '%activ%' ORDER BY key"
+            "SELECT key, LEFT(value, 80) AS value FROM settings WHERE key NOT ILIKE 'flyer_%' ORDER BY key"
         );
         res.json({ types: types.rows, phases: phases.rows, settings: settings.rows });
     } catch (e) {
