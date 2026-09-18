@@ -596,3 +596,19 @@ td.muted,
     width: 100%;
     margin: 0;
 }
+
+/* ── Toggle simple ── */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.toggle-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--sangre);
+    cursor: pointer;
+}

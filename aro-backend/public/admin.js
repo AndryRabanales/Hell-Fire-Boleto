@@ -78,8 +78,58 @@ function apiHeaders() {
 
 /* ── Dashboard ── */
 async function loadDashboard() {
-    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs()]);
+    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash()]);
     renderClicks();
+}
+
+// ── Venta flash ──
+async function loadFlash() {
+    try {
+        const r = await fetch(`${API_URL}/api/config`);
+        const c = await r.json();
+        const f = c.flash || {};
+        const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+        const chk = document.getElementById('flash-active');
+        if (chk && document.activeElement !== chk) chk.checked = !!f.active;
+        set('flash-label', f.label ?? '');
+        set('flash-uady', f.uady ?? 0);
+        set('flash-externo', f.externo ?? 0);
+        set('flash-vip', f.vip ?? 0);
+        set('flash-ultra', f.ultra ?? 0);
+        set('flash-backstage', f.backstage ?? 0);
+    } catch (e) { /* silencioso */ }
+    // Estado del interruptor flash del generador (referencia)
+    try {
+        const r2 = await fetch(`${API_URL}/api/ventas/precios?fresh=1`);
+        const d = await r2.json();
+        const badge = document.getElementById('flash-gen-estado');
+        if (badge) {
+            if (d.generadorFlash) { badge.textContent = 'Tu generador: flash ON'; badge.classList.remove('is-off'); }
+            else { badge.textContent = 'Tu generador: flash OFF'; badge.classList.add('is-off'); }
+        }
+    } catch (e) { /* silencioso */ }
+}
+
+async function saveFlash() {
+    const value = {
+        active: document.getElementById('flash-active').checked,
+        label: document.getElementById('flash-label').value.trim(),
+        uady: parseInt(document.getElementById('flash-uady').value) || 0,
+        externo: parseInt(document.getElementById('flash-externo').value) || 0,
+        vip: parseInt(document.getElementById('flash-vip').value) || 0,
+        ultra: parseInt(document.getElementById('flash-ultra').value) || 0,
+        backstage: parseInt(document.getElementById('flash-backstage').value) || 0,
+    };
+    try {
+        const res = await fetch(`${API_URL}/api/config/flash`, {
+            method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ value }),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        if (!res.ok) throw new Error();
+        showToast(value.active ? 'Flash activada' : 'Flash guardada');
+    } catch (err) {
+        showToast('Error al guardar la flash', 'error');
+    }
 }
 
 // Rellena el ajuste (extra) y el editor de cupos por fase desde la config

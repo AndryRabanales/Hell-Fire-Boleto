@@ -74,20 +74,120 @@ async function tablaExiste(pool, name) {
     return r.rows.length > 0;
 }
 
-// TEMPORAL: diagnóstico de precios del generador (precios por fase + flash).
-// Solo expone precios/fechas, sin datos personales. Se elimina tras mapear.
-router.get('/precios-debug', async (req, res) => {
-    const pool = getVentasPool();
-    if (!pool) return res.status(503).json({ error: 'VENTAS_DATABASE_URL no configurada' });
+// ── Venta flash (montos en NUESTRA config; el ON/OFF lo controla el admin) ──
+async function getFlash() {
+    const def = { active: false, uady: 0, externo: 0, vip: 0, ultra: 0, backstage: 0, label: '' };
     try {
-        const types = await pool.query('SELECT id, name, price_cents, is_vip, active, needs_faculty FROM ticket_types ORDER BY id');
-        const phases = await pool.query('SELECT id, type_id, name, price_cents, starts_on, group_pct FROM price_phases ORDER BY type_id, starts_on');
-        const settings = await pool.query(
-            "SELECT key, LEFT(value, 80) AS value FROM settings WHERE key NOT ILIKE 'flyer_%' ORDER BY key"
+        const row = await getRow("SELECT value FROM config WHERE key = 'flash'");
+        if (row) {
+            const f = JSON.parse(row.value);
+            return {
+                active: !!f.active,
+                uady: parseInt(f.uady) || 0,
+                externo: parseInt(f.externo) || 0,
+                vip: parseInt(f.vip) || 0,
+                ultra: parseInt(f.ultra) || 0,
+                backstage: parseInt(f.backstage) || 0,
+                label: f.label || '',
+            };
+        }
+    } catch (e) { /* usa def */ }
+    return def;
+}
+
+// Mapea el nombre de tipo del generador a nuestra clave
+function mapKeyTipo(n) {
+    n = (n || '').toLowerCase();
+    if (n.includes('ultra')) return 'ultra';
+    if (n.includes('backstage')) return 'backstage';
+    if (n.includes('vip')) return 'vip';
+    if (n.includes('uady')) return 'uady';
+    return 'externo';
+}
+
+const EVENTO_CIERRE = '2026-10-31T20:00:00-06:00';
+let preciosCache = { data: null, ts: 0 };
+const PRECIOS_TTL = 25000;
+
+// GET /api/precios — precios ACTUALES sincronizados del generador + flash
+router.get('/precios', async (req, res) => {
+    const now = Date.now();
+    const fresh = req.query.fresh === '1';
+    if (!fresh && preciosCache.data && now - preciosCache.ts < PRECIOS_TTL) {
+        // el flash puede cambiar en cualquier momento: relee solo el flash
+        const flash = await getFlash();
+        return res.json({ ...preciosCache.data, flash });
+    }
+
+    const flash = await getFlash();
+    const pool = getVentasPool();
+    if (!pool) return res.json({ available: false, flash });
+
+    try {
+        const types = await pool.query('SELECT id, name FROM ticket_types WHERE active = 1');
+        const phases = await pool.query(
+            'SELECT id, type_id, name, price_cents, starts_on::text AS starts_on FROM price_phases'
         );
-        res.json({ types: types.rows, phases: phases.rows, settings: settings.rows });
+
+        // Fecha de hoy en hora Mérida (UTC-6)
+        const today = new Date(now - 6 * 3600 * 1000).toISOString().slice(0, 10);
+        const nameOf = {};
+        types.rows.forEach((t) => { nameOf[t.id] = t.name; });
+
+        // Precios actuales por tipo (fase activa = último starts_on <= hoy)
+        const byType = {};
+        phases.rows.forEach((r) => { (byType[r.type_id] = byType[r.type_id] || []).push(r); });
+
+        const precios = {};
+        let faseActual = null;
+        Object.keys(byType).forEach((tid) => {
+            const past = byType[tid]
+                .filter((r) => r.starts_on <= today)
+                .sort((a, b) => (a.starts_on < b.starts_on ? 1 : a.starts_on > b.starts_on ? -1 : b.id - a.id));
+            const active = past[0];
+            if (active) {
+                precios[mapKeyTipo(nameOf[tid])] = Math.round(active.price_cents / 100);
+                if (!faseActual) faseActual = active.name;
+            }
+        });
+
+        // Info de fase para el cronómetro
+        const nums = phases.rows.map((r) => parseInt(String(r.name).replace(/\D/g, '')) || 0);
+        const faseTotal = Math.max(...nums, 0) || 4;
+        const faseNum = parseInt(String(faseActual || '').replace(/\D/g, '')) || 1;
+        const futuras = [...new Set(phases.rows.map((r) => r.starts_on).filter((d) => d > today))].sort();
+        const proximaFecha = futuras[0] || null;
+        const esUltima = !proximaFecha;
+
+        // Línea de tiempo completa (todas las fases, precios por tipo)
+        const faseMap = {};
+        phases.rows.forEach((r) => {
+            const fn = r.name;
+            faseMap[fn] = faseMap[fn] || { name: fn, starts_on: r.starts_on };
+            faseMap[fn][mapKeyTipo(nameOf[r.type_id])] = Math.round(r.price_cents / 100);
+        });
+        const fases = Object.values(faseMap).sort((a, b) => (a.starts_on < b.starts_on ? -1 : 1));
+
+        const data = {
+            available: Object.keys(precios).length > 0,
+            faseActual, faseNum, faseTotal,
+            proximaFecha: proximaFecha ? proximaFecha + 'T00:00:00-06:00' : EVENTO_CIERRE,
+            esUltima,
+            precios,
+            fases,
+        };
+
+        // Estado del interruptor flash del generador (referencia)
+        try {
+            const fm = await pool.query("SELECT value FROM settings WHERE key = 'flash_manual'");
+            data.generadorFlash = !!(fm.rows[0] && String(fm.rows[0].value).trim() === '1');
+        } catch (e) { data.generadorFlash = false; }
+
+        preciosCache = { data, ts: now };
+        res.json({ ...data, flash });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('Precios error:', e.message);
+        res.json({ available: false, flash, error: e.message });
     }
 });
 

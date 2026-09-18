@@ -946,3 +946,51 @@ a:hover { color: #ff7a2e; }
 
 /* Cupos/stock por tipo */
 .tier__stock { margin-top: 9px; }
+
+/* ============================================================
+   VENTA FLASH — banner + precios de oferta
+   ============================================================ */
+.flash-banner {
+  margin: 14px 0 4px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #d9282c, #8a0f12);
+  box-shadow: 0 8px 24px rgba(217, 40, 44, .35);
+  text-align: center;
+  animation: v2-pulse 2.6s ease-in-out infinite;
+}
+.flash-banner__tag {
+  display: block;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.flash-banner__desc {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .85);
+  margin-top: 3px;
+}
+
+/* Precio de oferta (flash) + precio anterior tachado */
+.tier__precio-old {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(20, 16, 14, .4);
+  text-decoration: line-through;
+  margin-right: 7px;
+}
+.tier__precio-flash {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--sangre);
+}

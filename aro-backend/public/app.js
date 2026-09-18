@@ -44,7 +44,7 @@ const CONFIG = {
     },
   ],
 
-  // Niveles de boleto. "price" recibe los precios de la fase activa.
+  // Niveles de boleto. Los precios llegan sincronizados del generador (/api/precios).
   tiers: [
     {
       id: 'general',
@@ -52,9 +52,6 @@ const CONFIG = {
       color: '#d9282c',
       btnBg: '#d9282c',
       incluye: 'Incluye',
-      price: (p) => 'Uady $' + p.uady + ' · Externo $' + p.ext,
-      waPrice: (p) => '$' + p.uady + ' / $' + p.ext,
-      montoDashboard: (p) => p.ext, // valor representativo para el dashboard
       perks: [
         'Barra libre toda la noche',
         'Aguas locas',
@@ -69,10 +66,8 @@ const CONFIG = {
       label: 'VIP',
       color: '#b8891f',
       btnBg: 'linear-gradient(135deg, #b8891f, #8a6210)',
+      priceKey: 'vip',
       incluye: 'Incluye todo lo del General, más',
-      price: (p) => '$' + p.vip,
-      waPrice: (p) => '$' + p.vip,
-      montoDashboard: (p) => p.vip,
       perks: [
         'Prioridad en la fila — sin cola',
         'Pulsera VIP toda la noche',
@@ -87,10 +82,8 @@ const CONFIG = {
       label: 'Ultra VIP',
       color: '#17b3a6',
       btnBg: 'linear-gradient(135deg, #17b3a6, #0e7d74)',
+      priceKey: 'ultra',
       incluye: 'Incluye todo lo del General y del VIP, más',
-      price: (p) => '$' + p.ultra,
-      waPrice: (p) => '$' + p.ultra,
-      montoDashboard: (p) => p.ultra,
       perks: [
         'Zona única Ultra VIP',
         'Pulsera Ultra VIP',
@@ -101,8 +94,26 @@ const CONFIG = {
         'Micheladas',
       ],
     },
+    {
+      id: 'backstage',
+      label: 'Backstage',
+      color: '#b23bd6',
+      btnBg: 'linear-gradient(135deg, #b23bd6, #7a1fa0)',
+      priceKey: 'backstage',
+      incluye: 'La experiencia máxima, más',
+      perks: [
+        'Acceso a zona Backstage',
+        'Detrás del escenario con los DJ',
+        'Todo lo del Ultra VIP incluido',
+        'Área privada exclusiva',
+        'Atención personalizada',
+      ],
+    },
   ],
 };
+
+/* ── Estado sincronizado de precios (viene de /api/precios) ── */
+let SYNC = null;
 
 /* ── Utilidades ── */
 
@@ -136,21 +147,49 @@ function abrirWhatsApp(label, precioTexto) {
   window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-/* ── Ventas reales (desde el sistema generador) para el FOMO ── */
+/* ── Estado de fase/precios (sincronizado o de respaldo) ── */
 
-// Cada nivel de la página se mapea a una categoría del generador:
-// General = Uady + Externo · VIP = VIP · Ultra VIP = Ultra vip
 function catDeTier(id) {
-  return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : 'general');
+  return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : (id === 'backstage' ? 'ultra' : 'general'));
 }
 
+// Devuelve el estado actual unificado (desde SYNC del generador o CONFIG de respaldo)
+function estadoFase() {
+  if (SYNC && SYNC.available) {
+    return {
+      nombre: SYNC.faseActual || ('Fase ' + SYNC.faseNum),
+      num: SYNC.faseNum,
+      total: SYNC.faseTotal,
+      targetMs: new Date(SYNC.proximaFecha).getTime(),
+      esUltima: !!SYNC.esUltima,
+      precios: SYNC.precios || {},
+      flash: SYNC.flash || { active: false },
+      fases: SYNC.fases || null,
+      synced: true,
+    };
+  }
+  const ph = faseActiva(Date.now());
+  const idx = CONFIG.phases.indexOf(ph) + 1;
+  return {
+    nombre: ph.name,
+    num: idx,
+    total: CONFIG.phases.length,
+    targetMs: new Date(ph.end).getTime(),
+    esUltima: idx === CONFIG.phases.length,
+    precios: { uady: ph.prices.uady, externo: ph.prices.ext, vip: ph.prices.vip, ultra: ph.prices.ultra },
+    flash: (SYNC && SYNC.flash) || { active: false },
+    fases: null,
+    synced: false,
+  };
+}
+
+/* ── Ventas reales (FOMO) ── */
 async function cargarVentas() {
   try {
-    const fase = faseActual ? faseActual.name : (faseActiva(Date.now()).name);
+    const fase = estadoFase().nombre;
     const res = await fetch('/api/ventas?fase=' + encodeURIComponent(fase));
     const v = await res.json();
-    if (!v || !v.available) return; // sin conexión al generador: no mostramos números
-
+    if (!v || !v.available) return;
     document.querySelectorAll('.tier__stock').forEach((el) => {
       const c = v[el.getAttribute('data-cat')];
       if (!c) return;
@@ -166,14 +205,44 @@ async function cargarVentas() {
   } catch (e) { /* silencioso */ }
 }
 
-/* ── Boletos ── */
+/* ── Precios por nivel (con soporte de venta flash) ── */
+function precioTier(tk, precios, flash) {
+  const flashOn = flash && flash.active;
+  if (tk.id === 'general') {
+    const uN = precios.uady, eN = precios.externo;
+    if (flashOn && flash.uady && flash.externo) {
+      return {
+        html: '<span class="tier__precio-old">$' + uN + ' · $' + eN + '</span>' +
+              '<span class="tier__precio-flash">Uady $' + flash.uady + ' · Ext $' + flash.externo + '</span>',
+        wa: 'Uady $' + flash.uady + ' / Externo $' + flash.externo,
+        monto: flash.externo,
+      };
+    }
+    return { html: 'Uady $' + uN + ' · Externo $' + eN, wa: '$' + uN + ' / $' + eN, monto: eN };
+  }
+  const k = tk.priceKey;
+  const n = precios[k];
+  if (flashOn && flash[k]) {
+    return {
+      html: '<span class="tier__precio-old">$' + n + '</span><span class="tier__precio-flash">$' + flash[k] + '</span>',
+      wa: '$' + flash[k], monto: flash[k],
+    };
+  }
+  return { html: '$' + n, wa: '$' + n, monto: n };
+}
 
-function pintarBoletos(phase) {
+/* ── Boletos ── */
+function pintarBoletos() {
+  const est = estadoFase();
   const cont = document.getElementById('tiers');
   cont.innerHTML = '';
 
   CONFIG.tiers.forEach((tk) => {
-    const precio = tk.price(phase.prices);
+    // Saltar niveles sin precio (p.ej. Backstage cuando no hay sync)
+    const tienePrecio = tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null;
+    if (!tienePrecio) return;
+
+    const pr = precioTier(tk, est.precios, est.flash);
 
     const wrap = document.createElement('div');
     wrap.className = 'tier';
@@ -191,7 +260,7 @@ function pintarBoletos(phase) {
         '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
         '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
         '<span class="tier__punteado"></span>' +
-        '<span class="tier__precio" style="color:' + tk.color + '">' + precio + '</span>' +
+        '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
       '</div>' +
       '<div class="tier__incluye">' + tk.incluye + '</div>' +
       '<div class="tier__perks">' + perks + '</div>' +
@@ -199,29 +268,61 @@ function pintarBoletos(phase) {
       '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
 
     wrap.querySelector('.tier__btn').addEventListener('click', () => {
-      // 1. registrar el apartado para el dashboard (segundo plano)
-      registrarApartado(tk.label, tk.montoDashboard(phase.prices), faseActual ? faseActual.name : phase.name);
-      // 2. abrir WhatsApp con el mensaje
-      abrirWhatsApp(tk.label, tk.waPrice(phase.prices));
+      registrarApartado(tk.label, pr.monto, est.nombre);
+      abrirWhatsApp(tk.label, pr.wa);
     });
 
     cont.appendChild(wrap);
   });
 
-  // Al repintar los boletos, rellenamos las ventas reales
   cargarVentas();
 }
 
-/* ── Línea de tiempo de fases ── */
+/* ── Banner de venta flash ── */
+function pintarFlash() {
+  const el = document.getElementById('flash-banner');
+  if (!el) return;
+  const est = estadoFase();
+  const f = est.flash;
+  if (!f || !f.active) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
-function pintarFases(phase) {
+  const p = est.precios;
+  let maxDesc = 0;
+  [['uady', 'uady'], ['externo', 'externo'], ['vip', 'vip'], ['ultra', 'ultra'], ['backstage', 'backstage']]
+    .forEach(([nk, fk]) => { if (p[nk] != null && f[fk]) maxDesc = Math.max(maxDesc, p[nk] - f[fk]); });
+
+  el.style.display = 'block';
+  el.innerHTML =
+    '<span class="flash-banner__tag">⚡ ' + (f.label || 'VENTA FLASH') + '</span>' +
+    '<span class="flash-banner__desc">' +
+      (maxDesc > 0 ? 'Hasta $' + maxDesc + ' de descuento · solo mientras dure' : 'Precios de oferta · solo mientras dure') +
+    '</span>';
+}
+
+/* ── Línea de tiempo de fases ── */
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+function fmtFecha(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d)) return '';
+  return 'Desde ' + d.getDate() + ' ' + MESES[d.getMonth()];
+}
+
+function pintarFases() {
+  const est = estadoFase();
   const cont = document.getElementById('timeline');
-  const activeIdx = CONFIG.phases.indexOf(phase);
   cont.innerHTML = '';
 
-  CONFIG.phases.forEach((ph, i) => {
+  let lista;
+  if (est.fases) {
+    lista = est.fases.map((f) => ({ name: f.name, date: fmtFecha(f.starts_on), uady: f.uady, ext: f.externo, vip: f.vip }));
+  } else {
+    lista = CONFIG.phases.map((p) => ({ name: p.name, date: p.date, uady: p.prices.uady, ext: p.prices.ext, vip: p.prices.vip }));
+  }
+
+  const activeIdx = lista.findIndex((ph) => ph.name === est.nombre);
+  lista.forEach((ph, i) => {
     const esActiva = i === activeIdx;
-    const pasada = i < activeIdx;
+    const pasada = activeIdx >= 0 && i < activeIdx;
 
     const el = document.createElement('div');
     el.className = 'fase';
@@ -230,7 +331,7 @@ function pintarFases(phase) {
 
     const puntoBg = esActiva ? '#d9282c' : (pasada ? 'rgba(246,241,231,.3)' : '#b8891f');
     const puntoGlow = esActiva ? '0 0 12px rgba(217,40,44,.7)' : 'none';
-    const precios = 'UADY $' + ph.prices.uady + ' · Ext $' + ph.prices.ext + ' · VIP $' + ph.prices.vip;
+    const precios = 'UADY $' + ph.uady + ' · Ext $' + ph.ext + ' · VIP $' + ph.vip;
 
     el.innerHTML =
       '<div class="fase__punto" style="background:' + puntoBg + ';box-shadow:' + puntoGlow + '"></div>' +
@@ -244,55 +345,65 @@ function pintarFases(phase) {
   });
 }
 
+/* ── Etiqueta de fase + nota ── */
+function actualizarFaseLabel() {
+  const est = estadoFase();
+  const lbl = document.getElementById('phase-label');
+  if (lbl) lbl.textContent = 'Fase ' + est.num + ' de ' + est.total + ' · ' + (est.esUltima ? 'cierra en' : 'termina en');
+
+  const nota = document.getElementById('fase-nota');
+  if (nota) {
+    const cierre = est.esUltima
+      ? 'Es la <b>última fase</b>: las ventas cierran el 31 de octubre a las 8pm.'
+      : 'Cuando termina el cronómetro (o se agota el cupo), el precio sube.';
+    nota.innerHTML =
+      '<span class="fase-nota__tag">Fase ' + est.num + ' de ' + est.total + '</span>' +
+      '<span class="fase-nota__txt">Vendemos en <b>' + est.total + ' fases</b> y cada una sube de precio. ' + cierre + '</span>';
+  }
+}
+
+/* ── Render completo ── */
+let faseNombreActual = null;
+function renderTodo() {
+  pintarBoletos();
+  pintarFases();
+  pintarFlash();
+  actualizarFaseLabel();
+  faseNombreActual = estadoFase().nombre;
+  revelar();
+}
+
+/* ── Sincroniza precios/flash del generador ── */
+async function cargarPrecios(fresh) {
+  try {
+    const res = await fetch('/api/ventas/precios' + (fresh ? '?fresh=1' : ''));
+    const data = await res.json();
+    SYNC = data || null;
+    renderTodo();
+  } catch (e) {
+    SYNC = null;
+    renderTodo();
+  }
+}
+
 /* ── Cronómetro ── */
-
-let faseActual = null;
-
 function tick() {
-  const now = Date.now();
-  const phase = faseActiva(now);
+  const est = estadoFase();
 
-  // Si cambió la fase, se repintan boletos y línea de tiempo.
-  if (!faseActual || faseActual.name !== phase.name) {
-    faseActual = phase;
-    pintarBoletos(phase);
-    pintarFases(phase);
-
-    const total = CONFIG.phases.length;
-    const idx = CONFIG.phases.indexOf(phase) + 1;
-    const esUltima = idx === total;
-    document.getElementById('phase-label').textContent =
-      phase.name + ' de ' + total + ' · ' + (esUltima ? 'cierra en' : 'termina en');
-
-    const nota = document.getElementById('fase-nota');
-    if (nota) {
-      const cierre = esUltima
-        ? 'Es la <b>última fase</b>: las ventas cierran el 31 de octubre a las 8pm.'
-        : 'Cuando se agota el cupo o termina el cronómetro, el precio sube.';
-      nota.innerHTML =
-        '<span class="fase-nota__tag">' + phase.name + ' de ' + total + '</span>' +
-        '<span class="fase-nota__txt">Vendemos en <b>' + total + ' fases</b> y cada una libera un <b>cupo limitado</b> ' +
-        'de boletos por tipo. ' + cierre + '</span>';
-    }
-
-    revelar();
+  // Si cambió la fase (por fecha), re-sincroniza precios
+  if (faseNombreActual && est.nombre !== faseNombreActual) {
+    cargarPrecios(true);
   }
 
-  const diff = Math.max(0, new Date(phase.end).getTime() - now);
+  const diff = Math.max(0, est.targetMs - Date.now());
   const d = pad(Math.floor(diff / 86400000));
   const h = pad(Math.floor(diff / 3600000) % 24);
   const m = pad(Math.floor(diff / 60000) % 60);
   const s = pad(Math.floor(diff / 1000) % 60);
 
-  document.getElementById('cd-d').textContent = d;
-  document.getElementById('cd-h').textContent = h;
-  document.getElementById('cd-m').textContent = m;
-  document.getElementById('cd-s').textContent = s;
-
-  document.getElementById('big-d').textContent = d;
-  document.getElementById('big-h').textContent = h;
-  document.getElementById('big-m').textContent = m;
-  document.getElementById('big-s').textContent = s;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('cd-d', d); set('cd-h', h); set('cd-m', m); set('cd-s', s);
+  set('big-d', d); set('big-h', h); set('big-m', m); set('big-s', s);
 }
 
 /* ── Revelado al hacer scroll (idempotente) ── */
@@ -338,11 +449,14 @@ function contarVisita() {
 document.addEventListener('DOMContentLoaded', () => {
   contarVisita();
 
+  // Pinta de inmediato con datos de respaldo, luego sincroniza con el generador
+  renderTodo();
+  cargarPrecios();
+  // Re-sincroniza precios y flash cada 20s (para reflejar la flash al instante)
+  setInterval(() => cargarPrecios(true), 20000);
+
   tick();
   setInterval(tick, 1000);
-
-  // Refresca las ventas reales cada 60s (FOMO en vivo)
-  setInterval(cargarVentas, 60000);
 
   arrancarVideos();
 

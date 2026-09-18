@@ -145,7 +145,8 @@ async function initDB() {
       "Fase 2": { "general": 400, "vip": 180, "ultra": 40 },
       "Fase 3": { "general": 400, "vip": 180, "ultra": 40 },
       "Fase 4": { "general": 300, "vip": 160, "ultra": 30 }
-    }`]
+    }`],
+    ['flash', '{"active":false,"uady":0,"externo":0,"vip":0,"ultra":0,"backstage":0,"label":"VENTA FLASH"}']
   ];
 
   for (const [key, value] of initConfig) {
