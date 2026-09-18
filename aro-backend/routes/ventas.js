@@ -74,6 +74,23 @@ async function tablaExiste(pool, name) {
     return r.rows.length > 0;
 }
 
+// TEMPORAL: diagnóstico de precios del generador (precios por fase + flash).
+// Solo expone precios/fechas, sin datos personales. Se elimina tras mapear.
+router.get('/precios-debug', async (req, res) => {
+    const pool = getVentasPool();
+    if (!pool) return res.status(503).json({ error: 'VENTAS_DATABASE_URL no configurada' });
+    try {
+        const types = await pool.query('SELECT id, name, price_cents, is_vip, active, needs_faculty FROM ticket_types ORDER BY id');
+        const phases = await pool.query('SELECT id, type_id, name, price_cents, starts_on, group_pct FROM price_phases ORDER BY type_id, starts_on');
+        const settings = await pool.query(
+            "SELECT key, value FROM settings WHERE key ILIKE '%flash%' OR key ILIKE '%precio%' OR key ILIKE '%price%' OR key ILIKE '%venta%' OR key ILIKE '%fase%' OR key ILIKE '%phase%' OR key ILIKE '%grupo%' OR key ILIKE '%descuento%' OR key ILIKE '%activ%' ORDER BY key"
+        );
+        res.json({ types: types.rows, phases: phases.rows, settings: settings.rows });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ── Cupos por categoría (para "disponibles") ──
 const CUPOS = { general: 1500, vip: 700, ultra: 150 };
 
