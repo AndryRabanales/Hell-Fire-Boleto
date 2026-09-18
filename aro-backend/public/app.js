@@ -153,6 +153,14 @@ function catDeTier(id) {
   return id === 'ultravip' ? 'ultra' : (id === 'vip' ? 'vip' : (id === 'backstage' ? 'backstage' : 'general'));
 }
 
+// Une el flash: activo si lo prendes en el admin O si tu generador tiene flash ON.
+// Los precios flash salen de la config del admin (el generador no expone montos flash).
+function mergeFlash(sync) {
+  const f = (sync && sync.flash) || {};
+  const genOn = !!(sync && sync.generadorFlash);
+  return { ...f, active: !!f.active || genOn };
+}
+
 // Devuelve el estado actual unificado (desde SYNC del generador o CONFIG de respaldo)
 function estadoFase() {
   if (SYNC && SYNC.available) {
@@ -163,7 +171,7 @@ function estadoFase() {
       targetMs: new Date(SYNC.proximaFecha).getTime(),
       esUltima: !!SYNC.esUltima,
       precios: SYNC.precios || {},
-      flash: SYNC.flash || { active: false },
+      flash: mergeFlash(SYNC),
       fases: SYNC.fases || null,
       synced: true,
     };
@@ -177,7 +185,7 @@ function estadoFase() {
     targetMs: new Date(ph.end).getTime(),
     esUltima: idx === CONFIG.phases.length,
     precios: { uady: ph.prices.uady, externo: ph.prices.ext, vip: ph.prices.vip, ultra: ph.prices.ultra },
-    flash: (SYNC && SYNC.flash) || { active: false },
+    flash: mergeFlash(SYNC),
     fases: null,
     synced: false,
   };
@@ -210,12 +218,16 @@ function precioTier(tk, precios, flash) {
   const flashOn = flash && flash.active;
   if (tk.id === 'general') {
     const uN = precios.uady, eN = precios.externo;
-    if (flashOn && flash.uady && flash.externo) {
+    // Flash por precio independiente: aplica al que tenga monto flash; el otro queda normal.
+    const uF = flashOn && flash.uady ? flash.uady : null;
+    const eF = flashOn && flash.externo ? flash.externo : null;
+    if (uF || eF) {
+      const uShow = uF || uN, eShow = eF || eN;
       return {
         html: '<span class="tier__precio-old">$' + uN + ' · $' + eN + '</span>' +
-              '<span class="tier__precio-flash">Uady $' + flash.uady + ' · Ext $' + flash.externo + '</span>',
-        wa: 'Uady $' + flash.uady + ' / Externo $' + flash.externo,
-        monto: flash.externo,
+              '<span class="tier__precio-flash">Uady $' + uShow + ' · Ext $' + eShow + '</span>',
+        wa: 'Uady $' + uShow + ' / Externo $' + eShow,
+        monto: eShow,
       };
     }
     return { html: 'Uady $' + uN + ' · Externo $' + eN, wa: '$' + uN + ' / $' + eN, monto: eN };

@@ -305,20 +305,4 @@ router.get('/sample/:table', auth, async (req, res) => {
     }
 });
 
-// TEMP: diagnóstico flash del generador (solo config, sin datos personales)
-router.get('/diag-flash', async (req, res) => {
-    const pool = getVentasPool();
-    if (!pool) return res.json({ error: 'sin pool' });
-    const out = {};
-    try {
-        const s = await pool.query("SELECT key, value FROM settings ORDER BY key");
-        out.settings = s.rows;
-    } catch (e) { out.settings = 'err: ' + e.message; }
-    try {
-        const p = await pool.query("SELECT id, type_id, name, price_cents, starts_on::text AS starts_on FROM price_phases ORDER BY type_id, id");
-        out.price_phases = p.rows;
-    } catch (e) { out.price_phases = 'err: ' + e.message; }
-    res.json(out);
-});
-
 module.exports = router;
