@@ -77,6 +77,42 @@ async function getFlash() {
     return def;
 }
 
+// URL pública del generador (OnFire) con precios+flash ya calculados.
+const VENTAS_API_URL = process.env.VENTAS_API_URL
+    || 'https://hellfire-production.up.railway.app/api/publico/precios';
+
+// Lee el endpoint público del generador (precio, precio_lista, en_flash, flash_activa).
+// Devuelve null si no está disponible (para caer al respaldo del admin).
+async function getGeneradorPublico() {
+    if (!VENTAS_API_URL) return null;
+    try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 4500);
+        const r = await fetch(VENTAS_API_URL, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
+        clearTimeout(t);
+        if (!r.ok) return null;
+        const j = await r.json();
+        if (!j || !Array.isArray(j.tipos)) return null;
+        return j;
+    } catch (e) { return null; }
+}
+
+// Flash efectivo: si el generador tiene flash ON, usa SUS montos (prioridad).
+// Si no responde, usa el flash configurado en el admin de Hell Fire.
+async function resolveFlash() {
+    const admin = await getFlash();
+    const pub = await getGeneradorPublico();
+    if (pub && pub.flash_activa) {
+        const out = { active: true, uady: 0, externo: 0, vip: 0, ultra: 0, backstage: 0, label: admin.label || 'VENTA FLASH', fuente: 'generador' };
+        pub.tipos.forEach((tp) => {
+            const k = mapKeyTipo(tp.nombre);
+            if (tp.en_flash && tp.precio != null) out[k] = Math.round(Number(tp.precio));
+        });
+        return out;
+    }
+    return admin;
+}
+
 // Mapea el nombre de tipo del generador a nuestra clave
 function mapKeyTipo(n) {
     n = (n || '').toLowerCase();
@@ -97,11 +133,11 @@ router.get('/precios', async (req, res) => {
     const fresh = req.query.fresh === '1';
     if (!fresh && preciosCache.data && now - preciosCache.ts < PRECIOS_TTL) {
         // el flash puede cambiar en cualquier momento: relee solo el flash
-        const flash = await getFlash();
+        const flash = await resolveFlash();
         return res.json({ ...preciosCache.data, flash });
     }
 
-    const flash = await getFlash();
+    const flash = await resolveFlash();
     const pool = getVentasPool();
     if (!pool) return res.json({ available: false, flash });
 
