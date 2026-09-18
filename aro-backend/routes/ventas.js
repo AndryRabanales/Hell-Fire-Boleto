@@ -166,7 +166,10 @@ router.get('/precios', async (req, res) => {
             faseMap[fn] = faseMap[fn] || { name: fn, starts_on: r.starts_on };
             faseMap[fn][mapKeyTipo(nameOf[r.type_id])] = Math.round(r.price_cents / 100);
         });
-        const fases = Object.values(faseMap).sort((a, b) => (a.starts_on < b.starts_on ? -1 : 1));
+        const numFase = (s) => parseInt(String(s).replace(/\D/g, '')) || 0;
+        const fases = Object.values(faseMap).sort((a, b) =>
+            a.starts_on < b.starts_on ? -1 : a.starts_on > b.starts_on ? 1 : numFase(a.name) - numFase(b.name)
+        );
 
         const data = {
             available: Object.keys(precios).length > 0,
