@@ -15,7 +15,8 @@ const PORT = process.env.PORT || 3001;
 
 // ── Middleware ─────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+// Límite alto: el flyer de promo (4:5, base64) viaja en el body del PUT de config
+app.use(express.json({ limit: '12mb' }));
 
 // ── Static Files (Admin CMS Panel & Frontend) ─────────────
 app.use(express.static(path.join(__dirname, 'public')));

@@ -78,7 +78,7 @@ function apiHeaders() {
 
 /* ── Dashboard ── */
 async function loadDashboard() {
-    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash()]);
+    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash(), loadPromo()]);
     renderClicks();
 }
 
@@ -391,8 +391,95 @@ function showToast(msg) {
     setTimeout(() => t.remove(), 3500);
 }
 
+/* ── Promoción (cartel) ── */
+let promoImg = '';   // dataURL del flyer ya redimensionado
+
+// Redimensiona el flyer a máx 1080×1350 (4:5) y lo comprime a JPEG para no pasar el límite del body
+function procesarFlyer(file) {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onerror = reject;
+        fr.onload = () => {
+            const im = new Image();
+            im.onerror = reject;
+            im.onload = () => {
+                const MAX_W = 1080, MAX_H = 1350;
+                let w = im.width, h = im.height;
+                const escala = Math.min(1, MAX_W / w, MAX_H / h);
+                w = Math.round(w * escala); h = Math.round(h * escala);
+                const cv = document.createElement('canvas');
+                cv.width = w; cv.height = h;
+                cv.getContext('2d').drawImage(im, 0, 0, w, h);
+                resolve(cv.toDataURL('image/jpeg', 0.82));
+            };
+            im.src = fr.result;
+        };
+        fr.readAsDataURL(file);
+    });
+}
+
+function pintarPreviewPromo() {
+    const wrap = document.getElementById('promo-preview-wrap');
+    const img = document.getElementById('promo-preview');
+    if (promoImg) { img.src = promoImg; wrap.style.display = 'block'; }
+    else { wrap.style.display = 'none'; }
+}
+
+async function loadPromo() {
+    try {
+        const r = await fetch(`${API_URL}/api/config`);
+        const c = await r.json();
+        const p = c.promo || {};
+        document.getElementById('promo-active').checked = !!p.active;
+        const t = document.getElementById('promo-titulo'); if (document.activeElement !== t) t.value = p.titulo || '';
+        const bt = document.getElementById('promo-btn-texto'); if (document.activeElement !== bt) bt.value = p.btn_texto || '';
+        const wa = document.getElementById('promo-wa'); if (document.activeElement !== wa) wa.value = p.wa_text || '';
+        promoImg = p.img || '';
+        pintarPreviewPromo();
+        const badge = document.getElementById('promo-estado');
+        if (badge) {
+            const on = !!(p.active && p.img);
+            badge.textContent = on ? 'Activa en la página' : 'Apagada';
+            badge.classList.toggle('is-off', !on);
+        }
+    } catch (e) { /* silencioso */ }
+}
+
+async function savePromo() {
+    const active = document.getElementById('promo-active').checked;
+    if (active && !promoImg) {
+        showToast('La promo exige una imagen (flyer 4:5)', 'error');
+        return;
+    }
+    const value = {
+        active,
+        img: promoImg || '',
+        titulo: document.getElementById('promo-titulo').value.trim(),
+        btn_texto: document.getElementById('promo-btn-texto').value.trim(),
+        wa_text: document.getElementById('promo-wa').value.trim(),
+    };
+    try {
+        const res = await fetch(`${API_URL}/api/config/promo`, {
+            method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ value }),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        if (!res.ok) throw new Error();
+        showToast(active ? 'Promo activada' : 'Promo guardada');
+        loadPromo();
+    } catch (err) {
+        showToast('Error al guardar la promo', 'error');
+    }
+}
+
 /* ── Init ── */
 window.addEventListener('DOMContentLoaded', () => {
+    const pf = document.getElementById('promo-file');
+    if (pf) pf.addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        try { promoImg = await procesarFlyer(f); pintarPreviewPromo(); showToast('Flyer listo · no olvides Guardar'); }
+        catch (err) { showToast('No se pudo procesar la imagen', 'error'); }
+    });
     if (sessionStorage.getItem('aro_admin_token')) {
         const name = sessionStorage.getItem('aro_admin_name');
         if (name) document.getElementById('admin-name').innerText = name;

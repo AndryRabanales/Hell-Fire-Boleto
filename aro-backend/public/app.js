@@ -147,6 +147,41 @@ function abrirWhatsApp(label, precioTexto) {
   window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
+/* ── Promo (cartel publicitario) ── */
+function pintarPromo(p) {
+  const sec = document.getElementById('promo-cartel');
+  if (!sec) return;
+  const activa = p && p.active && p.img;
+  if (!activa) { sec.style.display = 'none'; return; }
+
+  const img = document.getElementById('promo-img');
+  if (img.getAttribute('src') !== p.img) img.src = p.img;
+
+  const tit = document.getElementById('promo-titulo');
+  if (tit && p.titulo) tit.textContent = p.titulo;
+
+  const btn = document.getElementById('promo-btn');
+  if (btn) {
+    if (p.btn_texto) btn.textContent = p.btn_texto;
+    btn.onclick = () => {
+      const nombre = p.titulo || 'Promoción';
+      registrarApartado(nombre, 0, estadoFase().nombre);
+      const msg = p.wa_text || ('Hola, me interesa la promoción "' + nombre + '" de HELL FIRE 🎃');
+      window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
+    };
+  }
+
+  sec.style.display = '';
+  revelar();
+}
+
+async function cargarPromo() {
+  try {
+    const res = await fetch('/api/config/promo');
+    pintarPromo(await res.json());
+  } catch (e) { pintarPromo(null); }
+}
+
 /* ── Estado de fase/precios (sincronizado o de respaldo) ── */
 
 function catDeTier(id) {
@@ -494,6 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tick();
   setInterval(tick, 1000);
+
+  cargarPromo();
+  setInterval(cargarPromo, 60000);
 
   arrancarVideos();
 

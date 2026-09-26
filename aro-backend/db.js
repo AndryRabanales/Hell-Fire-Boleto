@@ -141,7 +141,8 @@ async function initDB() {
     ['visits', '0'],
     ['ventas_boost', '{"general":0,"vip":0,"ultra":0,"backstage":0}'],
     ['ventas_cupos', '{"general":1000,"vip":600,"ultra":400,"backstage":60}'],
-    ['flash', '{"active":false,"uady":0,"externo":0,"vip":0,"ultra":0,"backstage":0,"label":"VENTA FLASH"}']
+    ['flash', '{"active":false,"uady":0,"externo":0,"vip":0,"ultra":0,"backstage":0,"label":"VENTA FLASH"}'],
+    ['promo', '{"active":false,"img":"","titulo":"Promoción","btn_texto":"Apartar promo","wa_text":""}']
   ];
 
   for (const [key, value] of initConfig) {

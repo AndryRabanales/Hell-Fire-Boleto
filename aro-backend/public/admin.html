@@ -158,6 +158,40 @@
                 <button class="btn-primary" style="margin-top:14px;" onclick="saveFlash()">Guardar flash</button>
             </section>
 
+            <!-- ── PROMOCIÓN (cartel publicitario) ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Promoción · cartel</h2>
+                    <span class="panel__badge" id="promo-estado">—</span>
+                </div>
+                <p class="panel__note" style="margin:0 0 12px;">Al <b>activar</b>, aparece una sección de cartel en la
+                    página con tu flyer y un botón “Apartar promo”. Si no hay promo activa, la sección no existe. La promo
+                    <b>exige imagen</b> (formato 4:5, ideal 1080×1350).</p>
+
+                <label class="toggle-row" style="margin-bottom:14px;">
+                    <input type="checkbox" id="promo-active"> <span>Promo ACTIVA en la página</span>
+                </label>
+
+                <div class="editor-form-group" style="max-width:340px;">
+                    <label class="field-label" style="margin-top:0">Título (opcional)</label>
+                    <input type="text" id="promo-titulo" class="field field--sm" placeholder="Ej: 2x1 en Ultra VIP" style="width:100%;">
+                    <label class="field-label">Texto del botón (opcional)</label>
+                    <input type="text" id="promo-btn-texto" class="field field--sm" placeholder="Apartar promo" style="width:100%;">
+                    <label class="field-label">Mensaje de WhatsApp (opcional)</label>
+                    <input type="text" id="promo-wa" class="field field--sm" placeholder="Hola, me interesa la promoción…" style="width:100%;">
+                </div>
+
+                <h3 class="sub">Flyer (imagen 4:5)</h3>
+                <input type="file" id="promo-file" accept="image/*" class="field field--sm" style="max-width:340px;">
+                <div id="promo-preview-wrap" style="display:none; margin-top:12px;">
+                    <img id="promo-preview" alt="Vista previa"
+                        style="width:180px; aspect-ratio:4/5; object-fit:cover; border-radius:10px; border:1.5px solid var(--linea);">
+                </div>
+                <div style="margin-top:14px;">
+                    <button class="btn-primary" onclick="savePromo()">Guardar promo</button>
+                </div>
+            </section>
+
             <!-- ── CLICKS EN APARTAR (nuestra página) ── -->
             <section class="panel">
                 <div class="panel__head">
@@ -254,7 +288,7 @@
     </div>
 
     <div id="toast-container"></div>
-    <script src="admin.js?v=13"></script>
+    <script src="admin.js?v=14"></script>
 </body>
 
 </html>

@@ -31,12 +31,32 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET /api/promo — public: la promo/cartel para la página (solo si está activa)
+router.get('/promo', async (req, res) => {
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'promo'");
+        const p = row ? JSON.parse(row.value) : {};
+        // Solo se expone la imagen si la promo está activa (la página EXIGE imagen)
+        const activa = !!(p && p.active && p.img);
+        res.json(activa ? {
+            active: true,
+            img: p.img,
+            titulo: p.titulo || '',
+            btn_texto: p.btn_texto || '',
+            wa_text: p.wa_text || '',
+        } : { active: false });
+    } catch (err) {
+        console.error('Get promo error:', err.message);
+        res.json({ active: false });
+    }
+});
+
 // PUT /api/config/:key — admin only
 router.put('/:key', auth, async (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
-    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash'];
+    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash', 'promo'];
     if (!allowedKeys.includes(key)) {
         return res.status(400).json({ error: 'Clave de configuración inválida' });
     }
