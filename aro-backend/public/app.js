@@ -301,6 +301,10 @@ function pintarBoletos() {
   const flashOn = !!(est.flash && est.flash.active);
   cont.classList.toggle('tiers--flash', flashOn);
 
+  // En venta flash se retira el encabezado "Tu boleto" (el flyer ya encabeza)
+  const bolHead = document.querySelector('.boletos .section-head');
+  if (bolHead) bolHead.style.display = flashOn ? 'none' : '';
+
   const visibles = CONFIG.tiers.filter((tk) =>
     tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null);
 
@@ -313,6 +317,10 @@ function pintarBoletos() {
   if (flashOn) {
     // El flyer YA muestra los precios: debajo va una FILA horizontal de botones
     // para apartar, y más abajo solo lo informativo (qué incluye cada uno).
+    const titulo = document.createElement('h2');
+    titulo.className = 'flash-titulo';
+    titulo.textContent = 'Apartar promoción de la venta flash';
+
     const row = document.createElement('div');
     row.className = 'flash-botones';
     const info = document.createElement('div');
@@ -323,7 +331,7 @@ function pintarBoletos() {
       const b = document.createElement('button');
       b.className = 'flash-btn';
       b.style.background = tk.btnBg;
-      b.textContent = tk.label;
+      b.textContent = 'Apartar boleto ' + tk.label;
       b.addEventListener('click', () => {
         registrarApartado(tk.label, pr.monto, est.nombre);
         abrirWhatsApp(tk.label, pr.wa);
@@ -342,6 +350,7 @@ function pintarBoletos() {
       info.appendChild(blk);
     });
 
+    cont.appendChild(titulo);
     cont.appendChild(row);
     cont.appendChild(info);
     return;   // en flash no hay barras de stock
@@ -376,23 +385,9 @@ function pintarBoletos() {
 
 /* ── Banner de venta flash ── */
 function pintarFlash() {
+  // El flyer de la venta flash ya comunica el descuento: el banner de texto se retira.
   const el = document.getElementById('flash-banner');
-  if (!el) return;
-  const est = estadoFase();
-  const f = est.flash;
-  if (!f || !f.active) { el.style.display = 'none'; el.innerHTML = ''; return; }
-
-  const p = est.precios;
-  let maxDesc = 0;
-  [['uady', 'uady'], ['externo', 'externo'], ['vip', 'vip'], ['ultra', 'ultra'], ['backstage', 'backstage']]
-    .forEach(([nk, fk]) => { if (p[nk] != null && f[fk]) maxDesc = Math.max(maxDesc, p[nk] - f[fk]); });
-
-  el.style.display = 'block';
-  el.innerHTML =
-    '<span class="flash-banner__tag">⚡ ' + (f.label || 'VENTA FLASH') + '</span>' +
-    '<span class="flash-banner__desc">' +
-      (maxDesc > 0 ? 'Hasta $' + maxDesc + ' de descuento · solo mientras dure' : 'Precios de oferta · solo mientras dure') +
-    '</span>';
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
 }
 
 /* ── Línea de tiempo de fases ── */
@@ -450,6 +445,9 @@ function actualizarFaseLabel() {
 
   const nota = document.getElementById('fase-nota');
   if (nota) {
+    // En venta flash se oculta la nota de fases (el flyer manda)
+    if (est.flash && est.flash.active) { nota.style.display = 'none'; nota.innerHTML = ''; return; }
+    nota.style.display = '';
     const cierre = est.esUltima
       ? 'Es la <b>última fase</b>: las ventas cierran el 31 de octubre a las 8pm.'
       : 'Cuando termina el cronómetro (o se agota el cupo), el precio sube.';

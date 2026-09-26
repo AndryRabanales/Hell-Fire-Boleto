@@ -1071,6 +1071,14 @@ a:hover { color: #ff7a2e; }
 
 /* Modo venta flash: fila horizontal de botones para apartar (el precio va en el flyer),
    y debajo solo lo informativo (qué incluye cada tipo). */
+.flash-titulo {
+  font-family: var(--font-titulo, inherit);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--sangre);
+  margin: 4px 0 12px;
+  letter-spacing: .01em;
+}
 .flash-botones {
   display: flex;
   gap: 8px;
