@@ -179,11 +179,17 @@ function pintarPromo() {
 function pintarFlashFlyer() {
   const sec = document.getElementById('flash-cartel');
   if (!sec) return;
+  const bol = document.querySelector('.boletos');
   const src = SYNC && SYNC.flashImagen;
-  if (!src) { sec.style.display = 'none'; return; }
+  if (!src) {
+    sec.style.display = 'none';
+    if (bol) bol.classList.remove('boletos--flash');
+    return;
+  }
   const img = document.getElementById('flash-cartel-img');
   if (img && img.getAttribute('src') !== src) img.src = src;
   sec.style.display = '';
+  if (bol) bol.classList.add('boletos--flash');
   revelar();
 }
 
@@ -362,6 +368,7 @@ function fmtFecha(iso) {
 function pintarFases() {
   const est = estadoFase();
   const cont = document.getElementById('timeline');
+  if (!cont) return;
   cont.innerHTML = '';
 
   let lista;
@@ -418,7 +425,6 @@ function actualizarFaseLabel() {
 let faseNombreActual = null;
 function renderTodo() {
   pintarBoletos();
-  pintarFases();
   pintarFlash();
   pintarPromo();
   pintarFlashFlyer();
