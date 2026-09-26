@@ -298,62 +298,76 @@ function pintarBoletos() {
   const cont = document.getElementById('tiers');
   cont.innerHTML = '';
 
-  // En venta flash el flyer YA muestra los precios: cada tarjeta pasa a ser
-  // botón "Apartar" arriba + la info de lo que incluye abajo (sin repetir precio).
   const flashOn = !!(est.flash && est.flash.active);
   cont.classList.toggle('tiers--flash', flashOn);
 
-  CONFIG.tiers.forEach((tk) => {
-    // Saltar niveles sin precio (p.ej. Backstage cuando no hay sync)
-    const tienePrecio = tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null;
-    if (!tienePrecio) return;
+  const visibles = CONFIG.tiers.filter((tk) =>
+    tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null);
 
-    const pr = precioTier(tk, est.precios, est.flash);
+  const perksDe = (tk) => tk.perks.map((pk) =>
+    '<div class="tier__perk">' +
+      '<span class="tier__check" style="color:' + tk.color + '">✓</span>' +
+      '<span class="tier__perk-texto">' + pk + '</span>' +
+    '</div>').join('');
 
-    const wrap = document.createElement('div');
-    wrap.className = 'tier' + (flashOn ? ' tier--flash' : '');
-    // Sin data-reveal: se re-renderiza cada 20s y el revelado por scroll las dejaba
-    // invisibles (opacity 0). Las tarjetas de boletos deben verse siempre.
+  if (flashOn) {
+    // El flyer YA muestra los precios: debajo va una FILA horizontal de botones
+    // para apartar, y más abajo solo lo informativo (qué incluye cada uno).
+    const row = document.createElement('div');
+    row.className = 'flash-botones';
+    const info = document.createElement('div');
+    info.className = 'flash-info';
 
-    const perks = tk.perks.map((pk) => (
-      '<div class="tier__perk">' +
-        '<span class="tier__check" style="color:' + tk.color + '">✓</span>' +
-        '<span class="tier__perk-texto">' + pk + '</span>' +
-      '</div>'
-    )).join('');
+    visibles.forEach((tk) => {
+      const pr = precioTier(tk, est.precios, est.flash);
+      const b = document.createElement('button');
+      b.className = 'flash-btn';
+      b.style.background = tk.btnBg;
+      b.textContent = tk.label;
+      b.addEventListener('click', () => {
+        registrarApartado(tk.label, pr.monto, est.nombre);
+        abrirWhatsApp(tk.label, pr.wa);
+      });
+      row.appendChild(b);
 
-    const botonHtml = '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
-    const infoHtml =
-      '<div class="tier__incluye">' + tk.incluye + '</div>' +
-      '<div class="tier__perks">' + perks + '</div>';
-
-    if (flashOn) {
-      // botón arriba, y debajo solo la info de lo que contiene
-      wrap.innerHTML =
+      const blk = document.createElement('div');
+      blk.className = 'flash-info__tier';
+      blk.innerHTML =
         '<div class="tier__head tier__head--flash">' +
           '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
           '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
         '</div>' +
-        botonHtml +
-        infoHtml;
-    } else {
-      wrap.innerHTML =
-        '<div class="tier__head">' +
-          '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
-          '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
-          '<span class="tier__punteado"></span>' +
-          '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
-        '</div>' +
-        infoHtml +
-        '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
-        botonHtml;
-    }
+        '<div class="tier__incluye">' + tk.incluye + '</div>' +
+        '<div class="tier__perks">' + perksDe(tk) + '</div>';
+      info.appendChild(blk);
+    });
+
+    cont.appendChild(row);
+    cont.appendChild(info);
+    return;   // en flash no hay barras de stock
+  }
+
+  // ── Modo normal: tarjetas con precio ──
+  visibles.forEach((tk) => {
+    const pr = precioTier(tk, est.precios, est.flash);
+    const wrap = document.createElement('div');
+    wrap.className = 'tier';
+    wrap.innerHTML =
+      '<div class="tier__head">' +
+        '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
+        '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
+        '<span class="tier__punteado"></span>' +
+        '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
+      '</div>' +
+      '<div class="tier__incluye">' + tk.incluye + '</div>' +
+      '<div class="tier__perks">' + perksDe(tk) + '</div>' +
+      '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
+      '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
 
     wrap.querySelector('.tier__btn').addEventListener('click', () => {
       registrarApartado(tk.label, pr.monto, est.nombre);
       abrirWhatsApp(tk.label, pr.wa);
     });
-
     cont.appendChild(wrap);
   });
 

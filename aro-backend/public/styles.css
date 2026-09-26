@@ -1069,7 +1069,34 @@ a:hover { color: #ff7a2e; }
 .promo__img.is-loaded { opacity: 1; }
 
 
-/* Modo venta flash: botón arriba de cada tarjeta, info debajo (el precio está en el flyer) */
-.tier--flash .tier__head--flash { margin-bottom: 10px; }
-.tier--flash .tier__btn { margin: 0 0 10px; }
-.tier--flash .tier__incluye { margin-top: 2px; }
+/* Modo venta flash: fila horizontal de botones para apartar (el precio va en el flyer),
+   y debajo solo lo informativo (qué incluye cada tipo). */
+.flash-botones {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.flash-botones::-webkit-scrollbar { display: none; }
+.flash-btn {
+  flex: 0 0 auto;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 11px;
+  color: #fff;
+  font-family: var(--font-titulo, inherit);
+  font-weight: 800;
+  font-size: .92rem;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(20, 16, 14, .18);
+  transition: transform .12s ease;
+}
+.flash-btn:active { transform: translateY(1px); }
+.flash-info { margin-top: 4px; }
+.flash-info__tier { padding: 14px 0; border-top: 1px solid var(--linea); }
+.flash-info__tier:first-child { border-top: none; padding-top: 6px; }
+.flash-info__tier .tier__head--flash { margin-bottom: 8px; }
