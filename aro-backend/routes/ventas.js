@@ -97,11 +97,39 @@ async function getGeneradorPublico() {
     } catch (e) { return null; }
 }
 
+// Origen del generador (para armar URLs absolutas de los flyers /flyer?v=...)
+const GEN_BASE = VENTAS_API_URL.replace(/\/api\/publico\/precios.*$/, '');
+function absFlyer(path) {
+    if (!path) return null;
+    return /^https?:/.test(path) ? path : (GEN_BASE + path);
+}
+
+// Promo vigente del generador (una sola). EXIGE imagen: sin flyer no se muestra.
+function buildPromo(pub) {
+    const p = pub && pub.promocion;
+    if (!p) return null;
+    const img = absFlyer(p.imagen);
+    if (!img) return null;
+    return {
+        active: true,
+        tipo: p.tipo || null,
+        nombre: p.nombre || 'Promoción',
+        boletos: p.boletos || null,
+        pagan: p.pagan || null,
+        img,
+    };
+}
+
+// Flyer de la venta flash (solo si la flash está prendida y tiene imagen)
+function buildFlashImg(pub) {
+    return (pub && pub.flash_activa && pub.flash_imagen) ? absFlyer(pub.flash_imagen) : null;
+}
+
 // Flash efectivo: si el generador tiene flash ON, usa SUS montos (prioridad).
 // Si no responde, usa el flash configurado en el admin de Hell Fire.
-async function resolveFlash() {
+async function resolveFlash(pub) {
     const admin = await getFlash();
-    const pub = await getGeneradorPublico();
+    if (pub === undefined) pub = await getGeneradorPublico();
     if (pub && pub.flash_activa) {
         const out = { active: true, uady: 0, externo: 0, vip: 0, ultra: 0, backstage: 0, label: admin.label || 'VENTA FLASH', fuente: 'generador' };
         pub.tipos.forEach((tp) => {
@@ -131,15 +159,17 @@ const PRECIOS_TTL = 25000;
 router.get('/precios', async (req, res) => {
     const now = Date.now();
     const fresh = req.query.fresh === '1';
+    // Una sola lectura del generador para flash + promo + flyer flash (cambian al instante)
+    const pub = await getGeneradorPublico();
+    const flash = await resolveFlash(pub);
+    const promo = buildPromo(pub);
+    const flashImagen = buildFlashImg(pub);
     if (!fresh && preciosCache.data && now - preciosCache.ts < PRECIOS_TTL) {
-        // el flash puede cambiar en cualquier momento: relee solo el flash
-        const flash = await resolveFlash();
-        return res.json({ ...preciosCache.data, flash });
+        return res.json({ ...preciosCache.data, flash, promo, flashImagen });
     }
 
-    const flash = await resolveFlash();
     const pool = getVentasPool();
-    if (!pool) return res.json({ available: false, flash });
+    if (!pool) return res.json({ available: false, flash, promo, flashImagen });
 
     try {
         const types = await pool.query('SELECT id, name FROM ticket_types WHERE active = 1');
@@ -205,10 +235,10 @@ router.get('/precios', async (req, res) => {
         } catch (e) { data.generadorFlash = false; }
 
         preciosCache = { data, ts: now };
-        res.json({ ...data, flash });
+        res.json({ ...data, flash, promo, flashImagen });
     } catch (e) {
         console.error('Precios error:', e.message);
-        res.json({ available: false, flash, error: e.message });
+        res.json({ available: false, flash, promo, flashImagen, error: e.message });
     }
 });
 

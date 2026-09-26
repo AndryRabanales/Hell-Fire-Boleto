@@ -1042,3 +1042,9 @@ a:hover { color: #ff7a2e; }
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .promo__btn:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(217, 40, 44, .28); }
+
+/* Cartel del flyer flash dentro de la sección de boletos */
+.flash-cartel {
+  margin: 0 auto 18px;
+  max-width: 360px;
+}

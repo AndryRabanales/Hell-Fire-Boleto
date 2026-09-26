@@ -147,10 +147,11 @@ function abrirWhatsApp(label, precioTexto) {
   window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-/* ── Promo (cartel publicitario) ── */
-function pintarPromo(p) {
+/* ── Promo (cartel · viene del generador vía SYNC) ── */
+function pintarPromo() {
   const sec = document.getElementById('promo-cartel');
   if (!sec) return;
+  const p = SYNC && SYNC.promo;
   const activa = p && p.active && p.img;
   if (!activa) { sec.style.display = 'none'; return; }
 
@@ -158,15 +159,14 @@ function pintarPromo(p) {
   if (img.getAttribute('src') !== p.img) img.src = p.img;
 
   const tit = document.getElementById('promo-titulo');
-  if (tit && p.titulo) tit.textContent = p.titulo;
+  if (tit) tit.textContent = p.nombre || 'Promoción';
 
   const btn = document.getElementById('promo-btn');
   if (btn) {
-    if (p.btn_texto) btn.textContent = p.btn_texto;
     btn.onclick = () => {
-      const nombre = p.titulo || 'Promoción';
+      const nombre = p.nombre || 'Promoción';
       registrarApartado(nombre, 0, estadoFase().nombre);
-      const msg = p.wa_text || ('Hola, me interesa la promoción "' + nombre + '" de HELL FIRE 🎃');
+      const msg = 'Hola, me interesa la promoción "' + nombre + '" de HELL FIRE 🎃';
       window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
     };
   }
@@ -175,11 +175,16 @@ function pintarPromo(p) {
   revelar();
 }
 
-async function cargarPromo() {
-  try {
-    const res = await fetch('/api/config/promo');
-    pintarPromo(await res.json());
-  } catch (e) { pintarPromo(null); }
+/* ── Flyer de venta flash (cartel · viene del generador vía SYNC) ── */
+function pintarFlashFlyer() {
+  const sec = document.getElementById('flash-cartel');
+  if (!sec) return;
+  const src = SYNC && SYNC.flashImagen;
+  if (!src) { sec.style.display = 'none'; return; }
+  const img = document.getElementById('flash-cartel-img');
+  if (img && img.getAttribute('src') !== src) img.src = src;
+  sec.style.display = '';
+  revelar();
 }
 
 /* ── Estado de fase/precios (sincronizado o de respaldo) ── */
@@ -415,6 +420,8 @@ function renderTodo() {
   pintarBoletos();
   pintarFases();
   pintarFlash();
+  pintarPromo();
+  pintarFlashFlyer();
   actualizarFaseLabel();
   faseNombreActual = estadoFase().nombre;
   revelar();
@@ -529,9 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tick();
   setInterval(tick, 1000);
-
-  cargarPromo();
-  setInterval(cargarPromo, 60000);
 
   arrancarVideos();
 
