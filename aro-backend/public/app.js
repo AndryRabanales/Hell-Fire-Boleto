@@ -312,7 +312,8 @@ function pintarBoletos() {
 
     const wrap = document.createElement('div');
     wrap.className = 'tier' + (flashOn ? ' tier--flash' : '');
-    wrap.setAttribute('data-reveal', '');
+    // Sin data-reveal: se re-renderiza cada 20s y el revelado por scroll las dejaba
+    // invisibles (opacity 0). Las tarjetas de boletos deben verse siempre.
 
     const perks = tk.perks.map((pk) => (
       '<div class="tier__perk">' +
