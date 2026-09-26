@@ -1043,29 +1043,18 @@ a:hover { color: #ff7a2e; }
 }
 .promo__btn:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(217, 40, 44, .28); }
 
-/* Flyer de venta flash como FONDO de la sección de precios (todo el ancho y alto) */
-.flash-cartel {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  overflow: hidden;
-}
-.flash-cartel img {
+/* Flyer de venta flash: su propia sección, a todo el ancho, imagen completa */
+.flash-flyer {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  background: #14100e;
+}
+.flash-flyer img {
+  width: 100%;
+  height: auto;
   display: block;
 }
-/* velo para que las tarjetas de precio se lean sobre el flyer */
-.flash-cartel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(20,16,14,.55), rgba(20,16,14,.72));
-}
 
-/* Con flyer flash de fondo, los textos de la sección se aclaran para leerse */
-.boletos--flash .section-title,
-.boletos--flash .nota-precio,
-.boletos--flash .section-num { color: #f6f1e7; }
-.boletos--flash .sello { background: rgba(20,16,14,.5); }
