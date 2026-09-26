@@ -432,17 +432,42 @@ function revelar() {
 
 /* ── Videos: forzar silencio + bucle + reproducción ── */
 
+function reproducir(v) {
+  // Fuerza silencio + inline: sin esto iOS bloquea el autoplay y muestra el botón ▶
+  v.muted = true;
+  v.defaultMuted = true;
+  v.loop = true;
+  v.controls = false;
+  v.playsInline = true;
+  v.setAttribute('playsinline', '');
+  v.setAttribute('webkit-playsinline', '');
+  const p = v.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
 function arrancarVideos() {
-  document.querySelectorAll('video').forEach((v) => {
-    v.muted = true;
-    v.defaultMuted = true;
-    v.loop = true;
-    v.play().catch(() => {});
-    v.addEventListener('ended', () => {
-      v.currentTime = 0;
-      v.play().catch(() => {});
-    });
+  const vids = Array.from(document.querySelectorAll('video'));
+  vids.forEach((v) => {
+    reproducir(v);
+    // Si algo lo pausa (iOS al bloquear, cambio de foco, etc.) lo reanudamos al instante
+    v.addEventListener('pause', () => { if (!document.hidden) reproducir(v); });
+    v.addEventListener('ended', () => { v.currentTime = 0; reproducir(v); });
+    v.addEventListener('loadedmetadata', () => reproducir(v));
   });
+
+  const reintentar = () => vids.forEach(reproducir);
+
+  // Reintentos cortos tras cargar (cubre el arranque en frío del móvil)
+  let n = 0;
+  const iv = setInterval(() => { reintentar(); if (++n >= 8) clearInterval(iv); }, 500);
+
+  // Fallback por gesto del usuario (desbloquea autoplay en navegadores estrictos)
+  ['touchstart', 'click', 'pointerdown'].forEach((ev) =>
+    document.addEventListener(ev, reintentar, { passive: true }));
+
+  // Al volver a la pestaña, reanuda
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) reintentar(); });
+  window.addEventListener('pageshow', reintentar);
 }
 
 /* ── Conteo de visitas (una vez por sesión) ── */
