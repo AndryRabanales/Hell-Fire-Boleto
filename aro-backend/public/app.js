@@ -147,6 +147,17 @@ function abrirWhatsApp(label, precioTexto) {
   window.open('https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
+/* ── Muestra una imagen con fade suave al cargar (evita el salto/negro) ── */
+function mostrarImg(img, src) {
+  if (!img) return;
+  if (img.getAttribute('src') !== src) {
+    img.classList.remove('is-loaded');
+    img.onload = () => img.classList.add('is-loaded');
+    img.src = src;
+  }
+  if (img.complete && img.naturalWidth) img.classList.add('is-loaded');
+}
+
 /* ── Promo (cartel · viene del generador vía SYNC) ── */
 function pintarPromo() {
   const sec = document.getElementById('promo-cartel');
@@ -155,8 +166,7 @@ function pintarPromo() {
   const activa = p && p.active && p.img;
   if (!activa) { sec.style.display = 'none'; return; }
 
-  const img = document.getElementById('promo-img');
-  if (img.getAttribute('src') !== p.img) img.src = p.img;
+  mostrarImg(document.getElementById('promo-img'), p.img);
 
   const tit = document.getElementById('promo-titulo');
   if (tit) tit.textContent = p.nombre || 'Promoción';
@@ -181,8 +191,7 @@ function pintarFlashFlyer() {
   if (!sec) return;
   const src = SYNC && SYNC.flashImagen;
   if (!src) { sec.style.display = 'none'; return; }
-  const img = document.getElementById('flash-cartel-img');
-  if (img && img.getAttribute('src') !== src) img.src = src;
+  mostrarImg(document.getElementById('flash-cartel-img'), src);
   sec.style.display = '';
   revelar();
 }
@@ -289,6 +298,11 @@ function pintarBoletos() {
   const cont = document.getElementById('tiers');
   cont.innerHTML = '';
 
+  // En venta flash el flyer YA muestra los precios: cada tarjeta pasa a ser
+  // botón "Apartar" arriba + la info de lo que incluye abajo (sin repetir precio).
+  const flashOn = !!(est.flash && est.flash.active);
+  cont.classList.toggle('tiers--flash', flashOn);
+
   CONFIG.tiers.forEach((tk) => {
     // Saltar niveles sin precio (p.ej. Backstage cuando no hay sync)
     const tienePrecio = tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null;
@@ -297,7 +311,7 @@ function pintarBoletos() {
     const pr = precioTier(tk, est.precios, est.flash);
 
     const wrap = document.createElement('div');
-    wrap.className = 'tier';
+    wrap.className = 'tier' + (flashOn ? ' tier--flash' : '');
     wrap.setAttribute('data-reveal', '');
 
     const perks = tk.perks.map((pk) => (
@@ -307,17 +321,32 @@ function pintarBoletos() {
       '</div>'
     )).join('');
 
-    wrap.innerHTML =
-      '<div class="tier__head">' +
-        '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
-        '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
-        '<span class="tier__punteado"></span>' +
-        '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
-      '</div>' +
+    const botonHtml = '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
+    const infoHtml =
       '<div class="tier__incluye">' + tk.incluye + '</div>' +
-      '<div class="tier__perks">' + perks + '</div>' +
-      '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
-      '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
+      '<div class="tier__perks">' + perks + '</div>';
+
+    if (flashOn) {
+      // botón arriba, y debajo solo la info de lo que contiene
+      wrap.innerHTML =
+        '<div class="tier__head tier__head--flash">' +
+          '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
+          '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
+        '</div>' +
+        botonHtml +
+        infoHtml;
+    } else {
+      wrap.innerHTML =
+        '<div class="tier__head">' +
+          '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
+          '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
+          '<span class="tier__punteado"></span>' +
+          '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
+        '</div>' +
+        infoHtml +
+        '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
+        botonHtml;
+    }
 
     wrap.querySelector('.tier__btn').addEventListener('click', () => {
       registrarApartado(tk.label, pr.monto, est.nombre);

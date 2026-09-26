@@ -99,16 +99,20 @@ async function getGeneradorPublico() {
 
 // Origen del generador (para armar URLs absolutas de los flyers /flyer?v=...)
 const GEN_BASE = VENTAS_API_URL.replace(/\/api\/publico\/precios.*$/, '');
-function absFlyer(path) {
+
+// El generador sirve los flyers con no-cache (se re-descargan cada vez). Los pasamos
+// por NUESTRO backend con caché para que la página cargue el flyer al instante.
+function proxyFlyer(path) {
     if (!path) return null;
-    return /^https?:/.test(path) ? path : (GEN_BASE + path);
+    const m = /[?&]v=([a-z0-9]+)/i.exec(path);
+    return m ? ('/api/ventas/flyer?v=' + m[1]) : null;
 }
 
 // Promo vigente del generador (una sola). EXIGE imagen: sin flyer no se muestra.
 function buildPromo(pub) {
     const p = pub && pub.promocion;
     if (!p) return null;
-    const img = absFlyer(p.imagen);
+    const img = proxyFlyer(p.imagen);
     if (!img) return null;
     return {
         active: true,
@@ -122,7 +126,7 @@ function buildPromo(pub) {
 
 // Flyer de la venta flash (solo si la flash está prendida y tiene imagen)
 function buildFlashImg(pub) {
-    return (pub && pub.flash_activa && pub.flash_imagen) ? absFlyer(pub.flash_imagen) : null;
+    return (pub && pub.flash_activa && pub.flash_imagen) ? proxyFlyer(pub.flash_imagen) : null;
 }
 
 // Flash efectivo: si el generador tiene flash ON, usa SUS montos (prioridad).
@@ -368,6 +372,37 @@ router.get('/sample/:table', auth, async (req, res) => {
     } catch (err) {
         console.error('Ventas sample error:', err.message);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/ventas/flyer?v=... — proxy con caché de los flyers del generador.
+// El generador los sirve con no-cache; aquí los cacheamos (memoria + navegador) para
+// que la página los cargue al instante y no se vea el "salto" al recargar.
+const flyerCache = {};   // v -> { buf, mime, ts }
+const FLYER_TTL = 60000; // 60s en memoria
+router.get('/flyer', async (req, res) => {
+    const v = String(req.query.v || '').replace(/[^a-z0-9]/gi, '');
+    if (!v) return res.status(404).end();
+    const hit = flyerCache[v];
+    const enviar = (buf, mime) => {
+        res.set('Content-Type', mime);
+        res.set('Cache-Control', 'public, max-age=300');   // el navegador lo reusa 5 min
+        res.send(buf);
+    };
+    if (hit && Date.now() - hit.ts < FLYER_TTL) return enviar(hit.buf, hit.mime);
+    try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const r = await fetch(GEN_BASE + '/flyer?v=' + v, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!r.ok) return (hit ? enviar(hit.buf, hit.mime) : res.status(502).end());
+        const mime = r.headers.get('content-type') || 'image/png';
+        const buf = Buffer.from(await r.arrayBuffer());
+        flyerCache[v] = { buf, mime, ts: Date.now() };
+        enviar(buf, mime);
+    } catch (e) {
+        if (hit) return enviar(hit.buf, hit.mime);
+        res.status(502).end();
     }
 });
 

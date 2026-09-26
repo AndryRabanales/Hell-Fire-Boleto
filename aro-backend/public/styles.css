@@ -1043,18 +1043,33 @@ a:hover { color: #ff7a2e; }
 }
 .promo__btn:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(217, 40, 44, .28); }
 
-/* Flyer de venta flash: su propia sección, a todo el ancho, imagen completa */
+/* Flyer de venta flash: su propia sección, a todo el ancho, imagen completa.
+   Se reserva el espacio (aspect-ratio) para que NO salte al cargar, con fondo
+   papel mientras llega la imagen y un fade suave al aparecer. */
 .flash-flyer {
   display: block;
   width: 100%;
   margin: 0;
   padding: 0;
   line-height: 0;
-  background: #14100e;
+  aspect-ratio: 2160 / 2700;
+  background: var(--papel-tibio);
+  overflow: hidden;
 }
 .flash-flyer img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
+  opacity: 0;
+  transition: opacity .45s ease;
 }
+.flash-flyer img.is-loaded { opacity: 1; }
+.promo__img { opacity: 0; transition: opacity .45s ease; }
+.promo__img.is-loaded { opacity: 1; }
 
+
+/* Modo venta flash: botón arriba de cada tarjeta, info debajo (el precio está en el flyer) */
+.tier--flash .tier__head--flash { margin-bottom: 10px; }
+.tier--flash .tier__btn { margin: 0 0 10px; }
+.tier--flash .tier__incluye { margin-top: 2px; }
