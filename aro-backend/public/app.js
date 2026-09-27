@@ -292,270 +292,180 @@ function precioTier(tk, precios, flash) {
   return { html: '$' + n, wa: '$' + n, monto: n };
 }
 
-/* ── Boletos ── */
-function pintarBoletos() {
-  const est = estadoFase();
-  const cont = document.getElementById('tiers');
-  cont.innerHTML = '';
+/* ============================================================
+   RENDER — diseño editorial (Cronómetro · Promo · Venta Flash ·
+   Qué incluye/Cupos · Ubicación)
+   ============================================================ */
 
-  const flashOn = !!(est.flash && est.flash.active);
-  cont.classList.toggle('tiers--flash', flashOn);
+let faseNombreActual = null;
 
-  // En venta flash se retira el encabezado "Tu boleto" (el flyer ya encabeza)
-  const bolHead = document.querySelector('.boletos .section-head');
-  if (bolHead) bolHead.style.display = flashOn ? 'none' : '';
+// Descripción corta de cada tipo (sección "Qué incluye")
+const DESCRIP = {
+  general:   'Barra libre, aguas locas, pistolas de shots y DJ en vivo.',
+  vip:       'Todo lo del general + prioridad en la fila, segunda barra y Coca-Cola sin límite.',
+  ultravip:  'Todo lo del VIP + zona única, tercera barra, margaritas, palomas, azulitos y micheladas.',
+  backstage: 'Todo lo del Ultra VIP + junto a la cabina del DJ y la mejor botella de la fiesta.',
+};
 
-  const visibles = CONFIG.tiers.filter((tk) =>
+// Cupo simulado por categoría (solo si el generador no da números reales)
+const CUPO_SIM = { general: 500, vip: 500, ultra: 500, backstage: 500 };
+const VENDIDOS_SIM = 144;
+
+function tiersVisibles(est) {
+  return CONFIG.tiers.filter((tk) =>
     tk.id === 'general' ? est.precios.uady != null : est.precios[tk.priceKey] != null);
+}
 
-  const perksDe = (tk) => tk.perks.map((pk) =>
-    '<div class="tier__perk">' +
-      '<span class="tier__check" style="color:' + tk.color + '">✓</span>' +
-      '<span class="tier__perk-texto">' + pk + '</span>' +
-    '</div>').join('');
+// Precio en texto (sin HTML de tachado), para botones e info cuando NO hay flash
+function textoPrecio(tk, est) {
+  const p = est.precios;
+  if (tk.id === 'general') return 'Uady $' + p.uady + ' · Ext $' + p.externo;
+  const n = p[tk.priceKey];
+  return n != null ? ('$' + n) : '';
+}
+
+/* ── Sección Venta Flash: textos + flyer condicionales ── */
+function pintarFlashSeccion() {
+  const est = estadoFase();
+  const flashOn = !!(est.flash && est.flash.active);
+  const src = SYNC && SYNC.flashImagen;
+
+  const frame = document.getElementById('flash-frame');
+  const kicker = document.getElementById('flash-kicker');
+  const titulo = document.getElementById('flash-titulo');
+  const heading = document.getElementById('flash-heading');
+  const nota = document.getElementById('flash-precios-nota');
 
   if (flashOn) {
-    // El flyer YA muestra los precios: debajo va una FILA horizontal de botones
-    // para apartar, y más abajo solo lo informativo (qué incluye cada uno).
-    const titulo = document.createElement('h2');
-    titulo.className = 'flash-titulo';
-    titulo.textContent = 'Apartar promoción de la venta flash';
-
-    const row = document.createElement('div');
-    row.className = 'flash-botones';
-    const info = document.createElement('div');
-    info.className = 'flash-info';
-
-    visibles.forEach((tk) => {
-      const pr = precioTier(tk, est.precios, est.flash);
-      const b = document.createElement('button');
-      b.className = 'flash-btn';
-      b.style.background = tk.btnBg;
-      b.textContent = 'Apartar boleto ' + tk.label;
-      b.addEventListener('click', () => {
-        registrarApartado(tk.label, pr.monto, est.nombre);
-        abrirWhatsApp(tk.label, pr.wa);
-      });
-      row.appendChild(b);
-
-      const blk = document.createElement('div');
-      blk.className = 'flash-info__tier';
-      blk.innerHTML =
-        '<div class="tier__head tier__head--flash">' +
-          '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
-          '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
-        '</div>' +
-        '<div class="tier__incluye">' + tk.incluye + '</div>' +
-        '<div class="tier__perks">' + perksDe(tk) + '</div>';
-      info.appendChild(blk);
-    });
-
-    cont.appendChild(titulo);
-    cont.appendChild(row);
-    cont.appendChild(info);
-    return;   // en flash no hay barras de stock
+    if (kicker) kicker.textContent = 'Venta flash activa';
+    if (titulo) titulo.innerHTML = 'Venta <span class="fuego">flash</span>';
+    if (heading) heading.innerHTML = 'Aparta tu boleto de la <span class="fuego">venta flash</span>';
+    if (nota) nota.style.display = '';
+    if (frame && src) { mostrarImg(document.getElementById('flash-cartel-img'), src); frame.style.display = ''; }
+    else if (frame) frame.style.display = 'none';
+  } else {
+    if (kicker) kicker.textContent = 'Aparta tu boleto';
+    if (titulo) titulo.textContent = 'Boletos';
+    if (heading) heading.textContent = 'Aparta tu boleto';
+    if (nota) nota.style.display = 'none';
+    if (frame) frame.style.display = 'none';
   }
+}
 
-  // ── Modo normal: tarjetas con precio ──
-  visibles.forEach((tk) => {
+/* ── Grid de botones (Apartar por tipo) ── */
+function pintarBotones() {
+  const cont = document.getElementById('tiers-grid');
+  if (!cont) return;
+  const est = estadoFase();
+  const flashOn = !!(est.flash && est.flash.active);
+  cont.innerHTML = '';
+
+  tiersVisibles(est).forEach((tk) => {
     const pr = precioTier(tk, est.precios, est.flash);
-    const wrap = document.createElement('div');
-    wrap.className = 'tier';
-    wrap.innerHTML =
-      '<div class="tier__head">' +
-        '<span class="tier__rombo" style="background:' + tk.color + '"></span>' +
-        '<span class="tier__nombre" style="color:' + tk.color + '">' + tk.label + '</span>' +
-        '<span class="tier__punteado"></span>' +
-        '<span class="tier__precio" style="color:' + tk.color + '">' + pr.html + '</span>' +
-      '</div>' +
-      '<div class="tier__incluye">' + tk.incluye + '</div>' +
-      '<div class="tier__perks">' + perksDe(tk) + '</div>' +
-      '<div class="tier__stock" data-cat="' + catDeTier(tk.id) + '"></div>' +
-      '<button class="tier__btn" style="background:' + tk.btnBg + '">Apartar ' + tk.label + ' →</button>';
-
-    wrap.querySelector('.tier__btn').addEventListener('click', () => {
+    const b = document.createElement('button');
+    b.className = 'btn-tier btn-tier--' + tk.id;
+    b.innerHTML =
+      '<span class="btn-tier__nombre">' + tk.label + '</span>' +
+      (flashOn ? '' : '<span class="btn-tier__precio">' + textoPrecio(tk, est) + '</span>') +
+      '<span class="btn-tier__cta">Apartar <span>&rarr;</span></span>';
+    b.addEventListener('click', () => {
       registrarApartado(tk.label, pr.monto, est.nombre);
       abrirWhatsApp(tk.label, pr.wa);
     });
-    cont.appendChild(wrap);
+    cont.appendChild(b);
   });
-
-  cargarVentas();
 }
 
-/* ── Banner de venta flash ── */
-function pintarFlash() {
-  // El flyer de la venta flash ya comunica el descuento: el banner de texto se retira.
-  const el = document.getElementById('flash-banner');
-  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
-}
-
-/* ── Línea de tiempo de fases ── */
-const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-function fmtFecha(iso) {
-  const d = new Date(iso + 'T12:00:00');
-  if (isNaN(d)) return '';
-  return 'Desde ' + d.getDate() + ' ' + MESES[d.getMonth()];
-}
-
-function pintarFases() {
-  const est = estadoFase();
-  const cont = document.getElementById('timeline');
+/* ── Sección "Qué incluye" + cupos por tipo ── */
+function pintarInfoTipos() {
+  const cont = document.getElementById('tiers-info');
   if (!cont) return;
+  const est = estadoFase();
+  const flashOn = !!(est.flash && est.flash.active);
   cont.innerHTML = '';
 
-  let lista;
-  if (est.fases) {
-    lista = est.fases.map((f) => ({ name: f.name, date: fmtFecha(f.starts_on), uady: f.uady, ext: f.externo, vip: f.vip }));
-  } else {
-    lista = CONFIG.phases.map((p) => ({ name: p.name, date: p.date, uady: p.prices.uady, ext: p.prices.ext, vip: p.prices.vip }));
-  }
+  tiersVisibles(est).forEach((tk) => {
+    const div = document.createElement('div');
+    div.className = 'tipo tipo--' + tk.id;
+    div.setAttribute('data-cat', catDeTier(tk.id));
+    div.innerHTML =
+      '<div class="tipo__nombre">' + tk.label + '</div>' +
+      '<div class="tipo__desc">' + (DESCRIP[tk.id] || '') + '</div>' +
+      (flashOn ? '' : '<div class="tipo__precio">' + textoPrecio(tk, est) + '</div>') +
+      '<div class="cupo">' +
+        '<div class="cupo__top"><span>Boletos comprados</span>' +
+          '<span class="cupo__n"><b>0</b> / 0</span></div>' +
+        '<div class="cupo__bar"><i></i></div>' +
+        '<div class="cupo__quedan">Quedan &mdash; lugares</div>' +
+      '</div>';
+    cont.appendChild(div);
+  });
+  cargarCupos();
+}
 
-  const activeIdx = lista.findIndex((ph) => ph.name === est.nombre);
-  lista.forEach((ph, i) => {
-    const esActiva = i === activeIdx;
-    const pasada = activeIdx >= 0 && i < activeIdx;
-
-    const el = document.createElement('div');
-    el.className = 'fase';
-    el.setAttribute('data-reveal', '');
-    el.style.opacity = pasada ? '.42' : '1';
-
-    const puntoBg = esActiva ? '#d9282c' : (pasada ? 'rgba(246,241,231,.3)' : '#b8891f');
-    const puntoGlow = esActiva ? '0 0 12px rgba(217,40,44,.7)' : 'none';
-    const precios = 'UADY $' + ph.uady + ' · Ext $' + ph.ext + ' · VIP $' + ph.vip;
-
-    el.innerHTML =
-      '<div class="fase__punto" style="background:' + puntoBg + ';box-shadow:' + puntoGlow + '"></div>' +
-      '<div class="fase__row">' +
-        '<span class="fase__nombre' + (esActiva ? ' fase__nombre--activa' : '') + '">' + ph.name + '</span>' +
-        '<span class="fase__fecha">' + ph.date + '</span>' +
-      '</div>' +
-      '<div class="fase__precios">' + precios + '</div>';
-
-    cont.appendChild(el);
+/* ── Rellena los cupos (SIMULACIÓN, como se pidió: 144 / 500 por tipo) ── */
+function cargarCupos() {
+  document.querySelectorAll('#tiers-info .tipo').forEach((div) => {
+    const cat = div.getAttribute('data-cat');
+    const cap = CUPO_SIM[cat] || 500;
+    const sold = VENDIDOS_SIM;
+    const left = Math.max(0, cap - sold);
+    const pct = cap ? Math.min(100, Math.round((sold / cap) * 100)) : 0;
+    const nEl = div.querySelector('.cupo__n');
+    const bar = div.querySelector('.cupo__bar i');
+    const q = div.querySelector('.cupo__quedan');
+    if (nEl) nEl.innerHTML = '<b>' + sold + '</b> / ' + cap;
+    if (bar) bar.style.width = pct + '%';
+    if (q) q.textContent = 'Quedan ' + left + ' lugares';
   });
 }
 
-/* ── Etiqueta de fase + nota ── */
+/* ── Cronómetro: fase, etiqueta y barra de progreso ── */
 function actualizarFaseLabel() {
   const est = estadoFase();
+  const fn = document.getElementById('fase-num');
+  if (fn) fn.textContent = 'Fase ' + est.num + ' de ' + est.total;
   const lbl = document.getElementById('phase-label');
-  if (lbl) lbl.textContent = 'Fase ' + est.num + ' de ' + est.total + ' · ' + (est.esUltima ? 'cierra en' : 'termina en');
-
-  const nota = document.getElementById('fase-nota');
-  if (nota) {
-    // En venta flash se oculta la nota de fases (el flyer manda)
-    if (est.flash && est.flash.active) { nota.style.display = 'none'; nota.innerHTML = ''; return; }
-    nota.style.display = '';
-    const cierre = est.esUltima
-      ? 'Es la <b>última fase</b>: las ventas cierran el 31 de octubre a las 8pm.'
-      : 'Cuando termina el cronómetro (o se agota el cupo), el precio sube.';
-    nota.innerHTML =
-      '<span class="fase-nota__tag">Fase ' + est.num + ' de ' + est.total + '</span>' +
-      '<span class="fase-nota__txt">Vendemos en <b>' + est.total + ' fases</b> y cada una sube de precio. ' + cierre + '</span>';
-  }
+  if (lbl) lbl.textContent = est.esUltima ? 'Cierra en' : 'Termina en';
+  const prog = document.getElementById('fase-progress');
+  if (prog) prog.style.width = Math.round((est.num / est.total) * 100) + '%';
 }
 
 /* ── Render completo ── */
-let faseNombreActual = null;
 function renderTodo() {
-  pintarBoletos();
-  pintarFlash();
   pintarPromo();
-  pintarFlashFlyer();
+  pintarFlashSeccion();
+  pintarBotones();
+  pintarInfoTipos();
   actualizarFaseLabel();
   faseNombreActual = estadoFase().nombre;
-  revelar();
 }
 
-/* ── Sincroniza precios/flash del generador ── */
+/* ── Sincroniza precios/flash/promo del generador ── */
 async function cargarPrecios(fresh) {
   try {
     const res = await fetch('/api/ventas/precios' + (fresh ? '?fresh=1' : ''));
-    const data = await res.json();
-    SYNC = data || null;
-    renderTodo();
-  } catch (e) {
-    SYNC = null;
-    renderTodo();
-  }
+    SYNC = await res.json();
+  } catch (e) { SYNC = null; }
+  renderTodo();
 }
 
-/* ── Cronómetro ── */
+/* ── Cronómetro (cada segundo) ── */
 function tick() {
   const est = estadoFase();
-
-  // Si cambió la fase (por fecha), re-sincroniza precios
-  if (faseNombreActual && est.nombre !== faseNombreActual) {
-    cargarPrecios(true);
-  }
-
+  if (faseNombreActual && est.nombre !== faseNombreActual) cargarPrecios(true);
   const diff = Math.max(0, est.targetMs - Date.now());
-  const d = pad(Math.floor(diff / 86400000));
-  const h = pad(Math.floor(diff / 3600000) % 24);
-  const m = pad(Math.floor(diff / 60000) % 60);
-  const s = pad(Math.floor(diff / 1000) % 60);
-
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set('cd-d', d); set('cd-h', h); set('cd-m', m); set('cd-s', s);
-  set('big-d', d); set('big-h', h); set('big-m', m); set('big-s', s);
+  set('cd-d', pad(Math.floor(diff / 86400000)));
+  set('cd-h', pad(Math.floor(diff / 3600000) % 24));
+  set('cd-m', pad(Math.floor(diff / 60000) % 60));
+  set('cd-s', pad(Math.floor(diff / 1000) % 60));
 }
 
-/* ── Revelado al hacer scroll (idempotente) ── */
+/* ── revelar(): la usan pintarPromo/pintarFlashFlyer heredados (no-op) ── */
+function revelar() {}
 
-function revelar() {
-  document.querySelectorAll('[data-reveal]').forEach((el, i) => {
-    if (el.hasAttribute('data-shown')) return;
-    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) {
-      el.style.transitionDelay = ((i % 4) * 0.07) + 's';
-      el.setAttribute('data-shown', '1');
-    }
-  });
-}
-
-/* ── Videos: forzar silencio + bucle + reproducción ── */
-
-function reproducir(v) {
-  // Fuerza silencio + inline: sin esto iOS bloquea el autoplay y muestra el botón ▶
-  v.muted = true;
-  v.defaultMuted = true;
-  v.loop = true;
-  v.controls = false;
-  v.playsInline = true;
-  v.setAttribute('playsinline', '');
-  v.setAttribute('webkit-playsinline', '');
-  const p = v.play();
-  if (p && p.catch) p.catch(() => {});
-}
-
-function arrancarVideos() {
-  const vids = Array.from(document.querySelectorAll('video'));
-  vids.forEach((v) => {
-    reproducir(v);
-    // Si algo lo pausa (iOS al bloquear, cambio de foco, etc.) lo reanudamos al instante
-    v.addEventListener('pause', () => { if (!document.hidden) reproducir(v); });
-    v.addEventListener('ended', () => { v.currentTime = 0; reproducir(v); });
-    v.addEventListener('loadedmetadata', () => reproducir(v));
-  });
-
-  const reintentar = () => vids.forEach(reproducir);
-
-  // Reintentos cortos tras cargar (cubre el arranque en frío del móvil)
-  let n = 0;
-  const iv = setInterval(() => { reintentar(); if (++n >= 8) clearInterval(iv); }, 500);
-
-  // Fallback por gesto del usuario (desbloquea autoplay en navegadores estrictos)
-  ['touchstart', 'click', 'pointerdown'].forEach((ev) =>
-    document.addEventListener(ev, reintentar, { passive: true }));
-
-  // Al volver a la pestaña, reanuda
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) reintentar(); });
-  window.addEventListener('pageshow', reintentar);
-}
-
-/* ── Conteo de visitas (una vez por sesión) ── */
-
+/* ── Conteo de visita (una vez por sesión) ── */
 function contarVisita() {
   try {
     if (!sessionStorage.getItem('hf_visited')) {
@@ -566,23 +476,11 @@ function contarVisita() {
 }
 
 /* ── Arranque ── */
-
 document.addEventListener('DOMContentLoaded', () => {
   contarVisita();
-
-  // Pinta de inmediato con datos de respaldo, luego sincroniza con el generador
   renderTodo();
   cargarPrecios();
-  // Re-sincroniza precios y flash cada 20s (para reflejar la flash al instante)
   setInterval(() => cargarPrecios(true), 20000);
-
   tick();
   setInterval(tick, 1000);
-
-  arrancarVideos();
-
-  revelar();
-  window.addEventListener('scroll', revelar, { passive: true });
-  window.addEventListener('resize', revelar);
-  setTimeout(revelar, 240);
 });

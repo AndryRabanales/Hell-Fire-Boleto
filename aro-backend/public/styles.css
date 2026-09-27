@@ -1,1110 +1,482 @@
 /* ============================================================
-   HELL FIRE — Aparta tu boleto
-   Estética: papel hueso + tinta negra + rojo sangre + oro.
-   Diseñado para móvil (ancho base 393px, iPhone 15).
+   HELL FIRE — diseño editorial (papel + tinta + acentos)
+   Secciones: Cronómetro · Hero · Promo(01) · Venta Flash(02)
+              · Qué incluye/Cupos(03) · Ubicación(04)
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Cinzel+Decorative:wght@700;900&family=Manrope:wght@400;500;600;700;800&display=swap');
 
-/* ── Tipografías locales ── */
-@font-face {
-  font-family: 'Cinzel';
-  src: url('assets/fonts/Cinzel-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-display: block;
-}
-@font-face {
-  font-family: 'Cinzel';
-  src: url('assets/fonts/Cinzel-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-display: block;
-}
-@font-face {
-  font-family: 'Cinzel Decorative';
-  src: url('assets/fonts/CinzelDecorative-Black.ttf') format('truetype');
-  font-weight: 900;
-  font-display: block;
-}
-
-/* ── Tokens ── */
 :root {
-  --papel:      #fefefe;
-  --papel-tibio:#faf8f4;
-  --tinta:      #14100e;
-  --sangre:     #d9282c;
-  --sangre-viva:#ff5a4e;
-  --fuego:      #ff8a5c;
-  --oro:        #b8891f;
-  --aqua:       #17b3a6;
-  --hueso:      #f6f1e7;
-
-  --font-display: 'Cinzel Decorative', 'Cinzel', serif;
-  --font-title:   'Cinzel', serif;
-  --font-mono:    'Space Grotesk', monospace;
-  --font-body:    'Manrope', sans-serif;
-
-  --ancho-movil: 480px;
-  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --papel: #E9E7E3;
+  --papel-2: #F3F1ED;
+  --tinta: #0D0F12;
+  --tinta-60: rgba(13, 15, 18, .62);
+  --tinta-40: rgba(13, 15, 18, .38);
+  --linea: rgba(13, 15, 18, .16);
+  --rojo: #D9282C;
+  --oro: #A8820F;
+  --teal: #0F7F86;
+  --morado: #6A2B81;
+  --display: 'Cinzel Decorative', serif;
+  --titulo: 'Cinzel', serif;
+  --texto: 'Manrope', system-ui, sans-serif;
 }
 
-/* ── Reset ── */
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--papel);
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: var(--font-body);
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--texto);
   -webkit-font-smoothing: antialiased;
 }
 
-a {
-  color: var(--sangre);
-  text-decoration: none;
-}
-a:hover { color: #ff7a2e; }
-
 #root {
-  position: relative;
-  max-width: var(--ancho-movil);
+  max-width: 480px;
   margin: 0 auto;
   background: var(--papel);
-}
-
-/* ── Animaciones ── */
-@keyframes v2-word {
-  from { opacity: 0; transform: translateY(105%) rotate(4deg); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes v2-rise {
-  from { opacity: 0; transform: translateY(34px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes v2-line {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-@keyframes v2-flicker {
-  0%, 100% { opacity: 1; }
-  91%      { opacity: 1; }
-  92%      { opacity: .5; }
-  93%      { opacity: 1; }
-  95.5%    { opacity: .65; }
-  96%      { opacity: 1; }
-}
-@keyframes v2-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 40, 44, .45); }
-  50%      { box-shadow: 0 0 0 12px rgba(217, 40, 44, 0); }
-}
-@keyframes v2-beat {
-  0%, 100% { transform: scale(1); }
-  7%       { transform: scale(1.05); }
-  14%      { transform: scale(1); }
-}
-@keyframes v2-spin {
-  from { transform: rotate(0); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes v2-scrollhint {
-  0%, 100% { transform: translateY(0);    opacity: .9; }
-  50%      { transform: translateY(10px); opacity: .35; }
-}
-
-/* Revelado al hacer scroll: el JS solo alterna [data-shown]. */
-[data-reveal] {
-  opacity: 0;
-  transform: translateY(44px);
-  transition: opacity .8s var(--ease-out), transform .8s var(--ease-out);
-}
-[data-reveal][data-shown] {
-  opacity: 1;
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1; transform: none; transition: none; }
-}
-
-/* ── Videos de Ghostface ──
-   mix-blend-mode: multiply funde el fondo blanco del clip con el papel. */
-.ghost-video {
-  mix-blend-mode: multiply;
-  pointer-events: none;
-}
-
-/* ============================================================
-   CRONÓMETRO
-   ============================================================ */
-.bar-countdown {
-  position: relative;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 18px;
-  background: var(--papel);
-  border-bottom: 1.5px solid rgba(20, 16, 14, .18);
-}
-
-.bar-countdown__label {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .24em;
-  text-transform: uppercase;
-  color: var(--oro);
-  white-space: nowrap;
-}
-
-.bar-countdown__clock {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--tinta);
-}
-.bar-countdown__clock .num       { font-size: 17px; }
-.bar-countdown__clock .num--hot  { color: var(--sangre); }
-.bar-countdown__clock .unit      { font-size: 9.5px; letter-spacing: .1em; color: rgba(20, 16, 14, .45); }
-.bar-countdown__clock .unit--hot { color: rgba(217, 40, 44, .6); }
-.bar-countdown__clock .sep       { font-size: 12px; color: rgba(20, 16, 14, .25); padding: 0 3px; }
-
-/* ============================================================
-   PORTADA
-   ============================================================ */
-.portada {
-  position: relative;
-  overflow: hidden;
-  padding: 20px 18px 0;
-}
-
-/* La ventana del video queda pegada a la esquina derecha de la sección.
-   Las máscaras desvanecen el borde izquierdo (donde se notaba el recorte
-   del humo del vape) y el inferior. */
-.portada__ghost {
-  position: absolute;
-  right: 0;
-  top: 28px;
-  bottom: 0;
-  width: 56%;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  -webkit-mask-image:
-    linear-gradient(to bottom, #000 0, #000 70%, transparent 100%),
-    linear-gradient(to left,   #000 0, #000 74%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to bottom, #000 0, #000 70%, transparent 100%),
-    linear-gradient(to left,   #000 0, #000 74%, transparent 100%);
-  mask-composite: intersect;
-}
-.portada__ghost .ghost-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 14%;
-}
-
-.portada__texto {
-  position: relative;
-  z-index: 2;
-  max-width: 60%;
-}
-
-.kicker-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: v2-rise .8s var(--ease-out) both .1s;
-}
-
-.seal {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  flex: none;
-}
-.seal__ring {
-  position: absolute;
-  inset: 0;
-  display: block;
-  border: 1.5px double var(--sangre);
-  border-radius: 50%;
-  animation: v2-spin 20s linear infinite;
-}
-.seal__label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--tinta);
+  overflow-x: hidden;
 }
 
 .kicker {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .3em;
-  text-transform: uppercase;
-  color: var(--oro);
-  white-space: nowrap;
-}
-
-.hero-title {
-  margin: 12px 0 0;
-  line-height: .9;
-  width: 170%;
-}
-.hero-title__mask { display: block; overflow: hidden; }
-.hero-title__word {
-  display: inline-block;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 58px;
-  text-transform: uppercase;
-  color: var(--tinta);
-  animation: v2-word .9s var(--ease-out) both .2s;
-}
-.hero-title__word--fire {
-  color: var(--sangre);
-  animation: v2-word .9s var(--ease-out) both .35s,
-             v2-flicker 7s linear infinite 2s;
-}
-
-.hero-rule {
-  height: 3px;
-  width: 150px;
-  margin-top: 11px;
-  background: linear-gradient(90deg, var(--sangre), var(--oro));
-  transform-origin: left;
-  animation: v2-line 1s var(--ease-out) both .6s;
-}
-
-.hero-sub {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: rgba(20, 16, 14, .75);
-  margin: 11px 0 0;
-  animation: v2-rise .8s var(--ease-out) both .7s;
-}
-
-.scroll-hint {
-  position: absolute;
-  left: 18px;
-  bottom: 12px;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(20, 16, 14, .6);
-  white-space: nowrap;
-  animation: v2-scrollhint 1.8s ease-in-out infinite;
-}
-
-.spacer-96  { height: 96px; }
-.spacer-110 { height: 110px; }
-.spacer-120 { height: 120px; }
-
-/* ============================================================
-   BANDA "2000 PERSONAS"
-   ============================================================ */
-.banda {
-  border-top: 4px solid var(--tinta);
-  border-bottom: 4px solid var(--tinta);
-  padding: 14px 18px;
-  text-align: center;
-  background: var(--papel);
-}
-.banda__texto {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--tinta);
-}
-.banda__hot { color: var(--sangre); }
-
-/* ============================================================
-   ENCABEZADOS DE SECCIÓN
-   ============================================================ */
-.section-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-.section-num {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .32em;
-  text-transform: uppercase;
-  color: var(--oro);
-}
-.section-title {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 30px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--tinta);
-  margin: 0;
-}
-.section-title--claro  { color: var(--hueso); }
-.section-title--sm     { font-size: 24px; letter-spacing: .06em; line-height: 1.1; }
-.section-title--nowrap { white-space: nowrap; }
-
-/* ============================================================
-   BOLETOS
-   ============================================================ */
-.boletos {
-  position: relative;
-  overflow: hidden;
-  padding: 24px 18px 0;
-}
-.boletos__contenido {
-  position: relative;
-  z-index: 2;
-}
-
-.ghost-video--boletos {
-  position: absolute;
-  right: -12%;
-  bottom: -40px;
-  width: 74%;
-  z-index: 0;
-}
-
-.tiers {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  margin-top: 20px;
-}
-
-.tier { max-width: 90%; }
-
-.tier__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-.tier__rombo {
-  width: 9px;
-  height: 9px;
-  flex: none;
-  align-self: center;
-  transform: rotate(45deg);
-}
-.tier__nombre {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 23px;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.tier__punteado {
-  flex: 1;
-  border-bottom: 1.5px dotted rgba(20, 16, 14, .28);
-  transform: translateY(-6px);
-}
-.tier__precio {
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-weight: 700;
-  white-space: nowrap;
-  animation: v2-beat 3.6s ease-in-out infinite;
-}
-
-.tier__incluye {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(20, 16, 14, .42);
-  margin: 8px 0 0 19px;
-}
-
-.tier__perks {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 5px;
-  margin: 9px 0 0 19px;
-}
-.tier__perk {
-  display: flex;
-  gap: 9px;
-  align-items: baseline;
-}
-.tier__check {
-  font-weight: 800;
-  font-size: 14px;
-}
-.tier__perk-texto {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: rgba(20, 16, 14, .82);
-}
-
-.tier__btn {
-  margin: 13px 0 0 19px;
-  cursor: pointer;
-  border: none;
-  padding: 12px 22px;
-  color: #fff;
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  animation: v2-pulse 2.8s ease-in-out infinite;
-  transition: filter .25s;
-}
-.tier__btn:hover { filter: brightness(1.15); }
-.tier__btn:active { transform: scale(.98); }
-
-.sello {
-  position: relative;
-  margin-top: 34px;
-  border: 1.5px solid rgba(184, 137, 31, .55);
-  padding: 16px 20px;
-  text-align: center;
-  max-width: 90%;
-}
-.sello__corner {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-}
-.sello__corner--tl {
-  left: -4px;
-  top: -4px;
-  border-left: 3px solid var(--oro);
-  border-top: 3px solid var(--oro);
-}
-.sello__corner--br {
-  right: -4px;
-  bottom: -4px;
-  border-right: 3px solid var(--oro);
-  border-bottom: 3px solid var(--oro);
-}
-.sello__kicker {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .28em;
-  text-transform: uppercase;
-  color: var(--oro);
-}
-.sello__titulo {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--tinta);
-  margin-top: 7px;
-}
-.sello__hot { color: var(--sangre); }
-
-.nota-precio {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--sangre);
-  margin: 18px 0 0;
-}
-
-/* ============================================================
-   FASES
-   ============================================================ */
-.fases {
-  position: relative;
-  overflow: hidden;
-  padding: 26px 18px 20px;
-  background: var(--tinta);
-}
-
-.reloj {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 7px;
-  margin-top: 20px;
-}
-.reloj__caja {
-  border: 1.5px solid rgba(184, 137, 31, .5);
-  padding: 14px 4px;
-  text-align: center;
-}
-.reloj__caja--hot {
-  border-color: var(--sangre);
-  box-shadow: 0 0 22px rgba(217, 40, 44, .25) inset;
-}
-.reloj__num {
-  font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--hueso);
-  line-height: 1;
-}
-.reloj__num--hot { color: var(--sangre-viva); }
-.reloj__unit {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .26em;
-  text-transform: uppercase;
-  color: var(--oro);
-  margin-top: 6px;
-}
-.reloj__unit--hot { color: var(--sangre-viva); }
-
-.timeline {
-  margin-top: 22px;
-  margin-left: 7px;
-  border-left: 2px solid rgba(184, 137, 31, .35);
-}
-.fase {
-  position: relative;
-  padding: 11px 0 11px 24px;
-}
-.fase__punto {
-  position: absolute;
-  left: -8px;
-  top: 16px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--tinta);
-}
-.fase__row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.fase__nombre {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--hueso);
-}
-.fase__nombre--activa { color: var(--sangre-viva); }
-.fase__fecha {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: rgba(246, 241, 231, .45);
-}
-.fase__precios {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(246, 241, 231, .75);
-  margin-top: 5px;
-}
-
-/* ============================================================
-   LUGAR
-   ============================================================ */
-.lugar {
-  position: relative;
-  overflow: hidden;
-  padding: 24px 18px 0;
-}
-.ghost-video--lugar {
-  position: absolute;
-  right: -8%;
-  bottom: 0;
-  width: 62%;
-  z-index: 0;
-}
-.lugar__contenido {
-  position: relative;
-  z-index: 2;
-  max-width: 64%;
-}
-
-.bloque { padding-left: 14px; }
-.bloque--oro  { margin-top: 12px; border-left: 3px solid var(--oro); }
-.bloque--rojo { margin-top: 14px; border-left: 3px solid var(--sangre); }
-
-.bloque__titulo {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 21px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--tinta);
-  line-height: 1.2;
-}
-.bloque__titulo--rojo {
-  font-size: 18px;
-  letter-spacing: .05em;
-  color: var(--sangre);
-}
-.bloque__meta {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: rgba(20, 16, 14, .5);
-  margin-top: 5px;
-  line-height: 1.6;
-}
-.bloque__texto {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(20, 16, 14, .72);
-  margin: 6px 0 0;
-  line-height: 1.5;
-}
-.bloque__texto b { color: var(--tinta); }
-
-.btn-oscuro {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 10px 18px;
-  background: var(--tinta);
-  color: #fff;
-  font-family: var(--font-title);
+  font-family: var(--texto);
   font-weight: 700;
   font-size: 12px;
-  letter-spacing: .1em;
+  letter-spacing: .28em;
   text-transform: uppercase;
-  transition: background .25s;
+  color: var(--rojo);
 }
-.btn-oscuro:hover { background: var(--sangre); color: #fff; }
 
-/* ============================================================
-   REGLAS
-   ============================================================ */
-.reglas {
-  position: relative;
-  overflow: hidden;
-  padding: 24px 18px 26px;
-  background: var(--papel-tibio);
-  border-top: 1.5px solid rgba(20, 16, 14, .14);
+/* ── CRONÓMETRO (barra superior) ── */
+.topbar {
+  padding: 18px 20px 0;
+  border-bottom: 1px solid var(--linea);
 }
-.reglas__lista {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 20px;
+.topbar__row { display: flex; align-items: center; gap: 16px; }
+.topbar__fase {
+  flex: 0 0 auto;
 }
-.regla {
-  display: flex;
-  gap: 11px;
-  align-items: baseline;
-  padding: 8px 0 8px 13px;
-}
-.regla--no { border-left: 3px solid var(--sangre); }
-.regla--si { border-left: 3px solid var(--oro); }
-.regla__icono {
-  color: var(--sangre);
+.topbar__fase b {
+  display: block;
+  font-family: var(--texto);
   font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .18em;
+  color: var(--rojo);
+  text-transform: uppercase;
+}
+.topbar__fase span {
+  display: block;
+  font-family: var(--titulo);
+  font-weight: 700;
   font-size: 15px;
+  letter-spacing: .08em;
+  margin-top: 2px;
 }
-.regla__icono--si { color: var(--oro); }
-.regla__texto {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: rgba(20, 16, 14, .82);
-}
-
-/* ============================================================
-   FOOTER + CTA
-   ============================================================ */
-.footer {
-  background: var(--tinta);
-  padding: 22px 18px 90px;
+.clock { display: flex; margin-left: auto; }
+.clock__box {
+  min-width: 52px;
+  padding: 0 10px;
   text-align: center;
+  border-left: 1px solid var(--linea);
 }
-.footer__marca {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 26px;
-  text-transform: uppercase;
-  color: var(--hueso);
+.clock__box:first-child { border-left: none; }
+.clock__n {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
 }
-.footer__fire { color: var(--sangre); }
-.footer__redes {
-  display: flex;
-  justify-content: center;
-  gap: 9px;
+.clock__u {
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: var(--tinta-60);
+  margin-top: 4px;
+}
+.topbar__progress {
+  height: 3px;
+  background: var(--linea);
   margin-top: 16px;
-  flex-wrap: wrap;
 }
-.footer__copy {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(246, 241, 231, .4);
-  margin: 18px 0 0;
-}
-
-.btn-fantasma {
-  padding: 11px 22px;
-  border: 1.5px solid rgba(246, 241, 231, .35);
-  color: var(--hueso);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  transition: border-color .25s, color .25s;
-}
-.btn-fantasma:hover {
-  border-color: var(--fuego);
-  color: var(--fuego);
-}
-
-.btn-wa {
-  padding: 11px 22px;
-  background: var(--sangre);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  transition: filter .25s;
-}
-.btn-wa:hover { filter: brightness(1.14); color: #fff; }
-
-.cta-flotante {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 34px;
-  background: var(--sangre);
-  color: #fff;
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  box-shadow: 0 14px 36px rgba(217, 40, 44, .35);
-  animation: v2-pulse 2.4s ease-in-out infinite;
-  transition: filter .25s;
-}
-.cta-flotante:hover { filter: brightness(1.12); color: #fff; }
-
-/* ============================================================
-   VENTAS REALES (FOMO) — vendidos / disponibles por nivel
-   ============================================================ */
-.tier__stock {
-  margin: 11px 0 0 19px;
-  max-width: 320px;
-}
-.tier__stock:empty { display: none; }
-
-.tier__stock-bar {
-  height: 6px;
-  background: rgba(20, 16, 14, .1);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.tier__stock-bar i {
+.topbar__progress i {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, var(--sangre), var(--oro));
-  border-radius: 99px;
-  transition: width 1s var(--ease-out);
+  background: var(--rojo);
+  transition: width .6s ease;
 }
 
-.tier__stock-txt {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-.tier__stock-sold { color: var(--sangre); }
-.tier__stock-left { color: rgba(20, 16, 14, .5); }
-
-/* ============================================================
-   NOTA DE FASE (explica el sistema de 4 fases)
-   ============================================================ */
-.fase-nota {
-  margin: 16px 0 4px;
-  padding: 13px 15px;
-  border-left: 3px solid var(--sangre);
-  background: rgba(217, 40, 44, .05);
-  border-radius: 4px;
-  max-width: 92%;
-}
-.fase-nota__tag {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: #fff;
-  background: var(--sangre);
-  padding: 3px 9px;
-  border-radius: 99px;
-  margin-bottom: 7px;
-}
-.fase-nota__txt {
-  display: block;
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: rgba(20, 16, 14, .78);
-}
-.fase-nota__txt b { color: var(--tinta); }
-
-/* ============================================================
-   COMPACTACIÓN DE ALTURA (móvil) — menos espacio vertical
-   ============================================================ */
-/* Espaciadores (dan aire a los videos) — más chicos */
-.spacer-96  { height: 48px; }
-.spacer-110 { height: 60px; }
-.spacer-120 { height: 66px; }
-
-/* Portada / hero */
-.portada { padding-top: 12px; }
-.hero-title__word { font-size: 50px; }
-.hero-sub { margin-top: 8px; }
-
-/* Banda */
-.banda { padding: 10px 18px; }
-
-/* Boletos */
-.boletos { padding-top: 16px; }
-.fase-nota { margin: 12px 0 4px; padding: 11px 13px; }
-.fase-nota__txt { font-size: 12px; line-height: 1.45; }
-.tiers { gap: 14px; margin-top: 14px; }
-.tier__incluye { margin-top: 6px; }
-.tier__perks { gap: 3px; margin-top: 6px; }
-.tier__perk-texto { font-size: 13px; }
-.tier__btn { margin-top: 10px; padding: 10px 20px; }
-.sello { margin-top: 20px; padding: 12px 18px; }
-
-/* Fases / reloj */
-.fases { padding: 18px 18px 14px; }
-.reloj { margin-top: 14px; gap: 6px; }
-.reloj__caja { padding: 10px 4px; }
-.reloj__num { font-size: 24px; }
-.timeline { margin-top: 16px; }
-.fase { padding: 8px 0 8px 24px; }
-
-/* Lugar */
-.lugar { padding-top: 16px; }
-.bloque--oro  { margin-top: 10px; }
-.bloque--rojo { margin-top: 10px; }
-
-/* Reglas */
-.reglas { padding: 16px 18px 20px; }
-.reglas__lista { gap: 6px; margin-top: 14px; }
-.regla { padding: 6px 0 6px 13px; }
-
-/* Footer */
-.footer { padding: 18px 18px 78px; }
-.footer__redes { margin-top: 12px; }
-.footer__copy { margin-top: 12px; }
-
-/* Cupos/stock por tipo */
-.tier__stock { margin-top: 9px; }
-
-/* ============================================================
-   VENTA FLASH — banner + precios de oferta
-   ============================================================ */
-.flash-banner {
-  margin: 14px 0 4px;
-  padding: 12px 16px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #d9282c, #8a0f12);
-  box-shadow: 0 8px 24px rgba(217, 40, 44, .35);
+/* ── HERO ── */
+.hero {
+  padding: 40px 22px 30px;
   text-align: center;
-  animation: v2-pulse 2.6s ease-in-out infinite;
 }
-.flash-banner__tag {
-  display: block;
-  font-family: var(--font-title);
+.hero__title {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 15vw;
+  max-font-size: 72px;
+  line-height: .92;
+  letter-spacing: .04em;
+}
+@media (min-width: 460px) { .hero__title { font-size: 70px; } }
+.hero__title .fuego { color: var(--rojo); }
+.hero__sub {
+  font-family: var(--titulo);
   font-weight: 700;
-  font-size: 16px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #fff;
-}
-.flash-banner__desc {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, .85);
-  margin-top: 3px;
-}
-
-/* Precio de oferta (flash) + precio anterior tachado */
-.tier__precio-old {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(20, 16, 14, .4);
-  text-decoration: line-through;
-  margin-right: 7px;
-}
-.tier__precio-flash {
-  font-family: var(--font-mono);
   font-size: 17px;
-  font-weight: 700;
-  color: var(--sangre);
+  letter-spacing: .12em;
+  margin-top: 16px;
+  text-transform: uppercase;
 }
-
-/* ============================================================
-   PROMO · cartel publicitario (solo visible con promo activa)
-   ============================================================ */
-.promo {
-  padding: 46px 20px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  background: var(--papel-tibio);
-  border-top: 1.5px solid var(--linea);
-  border-bottom: 1.5px solid var(--linea);
-}
-.promo .section-head { align-self: flex-start; }
-.promo__marco {
-  width: 100%;
-  max-width: 420px;
-  aspect-ratio: 4 / 5;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1.5px solid var(--tinta);
-  box-shadow: 0 14px 34px rgba(20, 16, 14, .28);
-  background: var(--papel);
-}
-.promo__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.promo__btn {
-  width: 100%;
-  max-width: 420px;
-  padding: 15px 18px;
-  border: none;
-  border-radius: 12px;
-  background: var(--sangre);
-  color: #fff;
-  font-family: var(--font-titulo, inherit);
+.hero__masivo {
+  font-family: var(--texto);
   font-weight: 800;
-  font-size: 1.02rem;
-  letter-spacing: .02em;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(217, 40, 44, .32);
-  transition: transform .12s ease, box-shadow .12s ease;
+  font-size: 13px;
+  letter-spacing: .22em;
+  color: var(--rojo);
+  margin-top: 10px;
+  text-transform: uppercase;
 }
-.promo__btn:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(217, 40, 44, .28); }
+.hero__info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--linea);
+  margin-top: 26px;
+}
+.hero__cell {
+  padding: 14px 4px;
+  text-align: center;
+  border-left: 1px solid var(--linea);
+  font-family: var(--titulo);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .04em;
+}
+.hero__cell:first-child { border-left: none; }
+.hero__cell--rojo { color: var(--rojo); }
 
-/* Flyer de venta flash: su propia sección, a todo el ancho, imagen completa.
-   Se reserva el espacio (aspect-ratio) para que NO salte al cargar, con fondo
-   papel mientras llega la imagen y un fade suave al aparecer. */
-.flash-flyer {
-  display: block;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-  aspect-ratio: 2160 / 2700;
-  background: var(--papel-tibio);
-  overflow: hidden;
+/* ── SECCIÓN GENÉRICA (con número marca de agua) ── */
+.seccion {
+  position: relative;
+  padding: 42px 22px;
+  border-top: 1px solid var(--linea);
 }
-.flash-flyer img {
+.seccion__head { position: relative; margin-bottom: 22px; }
+.seccion__num {
+  position: absolute;
+  right: 0;
+  top: -14px;
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 60px;
+  line-height: 1;
+  color: var(--tinta);
+  opacity: .10;
+  pointer-events: none;
+}
+.seccion__kicker {
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .26em;
+  color: var(--tinta-40);
+  text-transform: uppercase;
+}
+.seccion__titulo {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: .02em;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+.seccion__titulo .fuego { color: var(--rojo); }
+
+/* ── MARCO CON ESQUINAS (flyers) ── */
+.frame {
+  position: relative;
+  padding: 14px;
+}
+.frame__img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
   opacity: 0;
   transition: opacity .45s ease;
+  background: var(--papel-2);
 }
-.flash-flyer img.is-loaded { opacity: 1; }
-.promo__img { opacity: 0; transition: opacity .45s ease; }
-.promo__img.is-loaded { opacity: 1; }
+.frame__img.is-loaded { opacity: 1; }
+.frame .corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--tinta);
+}
+.frame .c-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+.frame .c-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+.frame .c-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+.frame .c-br { bottom: 0; right: 0; border-left: none; border-top: none; }
 
-
-/* Modo venta flash: fila horizontal de botones para apartar (el precio va en el flyer),
-   y debajo solo lo informativo (qué incluye cada tipo). */
-.flash-titulo {
-  font-family: var(--font-titulo, inherit);
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--sangre);
-  margin: 4px 0 12px;
-  letter-spacing: .01em;
-}
-.flash-botones {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 4px 0 10px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.flash-botones::-webkit-scrollbar { display: none; }
-.flash-btn {
-  flex: 0 0 auto;
-  padding: 13px 18px;
+/* ── PROMO / VENTA FLASH: botón principal e imagen ── */
+.btn-principal {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 17px;
   border: none;
-  border-radius: 11px;
+  background: var(--rojo);
   color: #fff;
-  font-family: var(--font-titulo, inherit);
+  font-family: var(--texto);
   font-weight: 800;
-  font-size: .92rem;
-  letter-spacing: .01em;
-  white-space: nowrap;
+  font-size: 14px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-align: center;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(20, 16, 14, .18);
-  transition: transform .12s ease;
+  text-decoration: none;
 }
-.flash-btn:active { transform: translateY(1px); }
-.flash-info { margin-top: 4px; }
-.flash-info__tier { padding: 14px 0; border-top: 1px solid var(--linea); }
-.flash-info__tier:first-child { border-top: none; padding-top: 6px; }
-.flash-info__tier .tier__head--flash { margin-bottom: 8px; }
+.btn-principal:active { opacity: .9; }
+
+/* ── VENTA FLASH: heading + grid de botones ── */
+.flash__heading {
+  text-align: center;
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: .04em;
+  line-height: 1.25;
+  margin: 30px 0 20px;
+  text-transform: uppercase;
+}
+.flash__heading .fuego { color: var(--rojo); }
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.btn-tier {
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  padding: 22px 18px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 118px;
+  justify-content: space-between;
+}
+.btn-tier__nombre {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 21px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.btn-tier__precio {
+  font-family: var(--titulo);
+  font-weight: 700;
+  font-size: 15px;
+  opacity: .92;
+}
+.btn-tier__cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.btn-tier--general   { background: var(--rojo); }
+.btn-tier--vip       { background: var(--oro); }
+.btn-tier--ultravip  { background: var(--teal); }
+.btn-tier--backstage { background: var(--morado); }
+.flash__nota {
+  text-align: center;
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .2em;
+  color: var(--tinta-40);
+  text-transform: uppercase;
+  margin-top: 20px;
+}
+
+/* ── QUÉ INCLUYE / CUPOS (03) ── */
+.tipo {
+  padding: 18px 0;
+  border-top: 1px solid var(--linea);
+}
+.tipo:first-of-type { border-top: none; }
+.tipo__nombre {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: .04em;
+  padding-left: 14px;
+  border-left: 4px solid var(--tinta);
+  text-transform: uppercase;
+}
+.tipo--general   .tipo__nombre { border-color: var(--rojo);   color: var(--rojo); }
+.tipo--vip       .tipo__nombre { border-color: var(--oro);    color: var(--oro); }
+.tipo--ultravip  .tipo__nombre { border-color: var(--teal);   color: var(--teal); }
+.tipo--backstage .tipo__nombre { border-color: var(--morado); color: var(--morado); }
+.tipo__desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tinta-60);
+  margin: 10px 0 14px;
+  padding-left: 14px;
+}
+.tipo__precio {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 18px;
+  padding-left: 14px;
+  margin-bottom: 12px;
+}
+.cupo { padding-left: 14px; }
+.cupo__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--tinta-60);
+  text-transform: uppercase;
+}
+.cupo__n { letter-spacing: 0; font-size: 14px; color: var(--tinta); }
+.cupo__n b { color: var(--rojo); }
+.cupo__bar {
+  height: 5px;
+  background: var(--linea);
+  margin: 8px 0 8px;
+}
+.cupo__bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--tinta);
+  transition: width .6s ease;
+}
+.tipo--general   .cupo__bar i { background: var(--rojo); }
+.tipo--vip       .cupo__bar i { background: var(--oro); }
+.tipo--ultravip  .cupo__bar i { background: var(--teal); }
+.tipo--backstage .cupo__bar i { background: var(--morado); }
+.cupo__quedan {
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--tinta-40);
+  text-transform: uppercase;
+}
+
+/* ── NOTA ── */
+.nota {
+  margin-top: 22px;
+  padding: 18px;
+  background: var(--papel-2);
+  border: 1px solid var(--linea);
+}
+.nota__k {
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .22em;
+  color: var(--rojo);
+  text-transform: uppercase;
+}
+.nota__txt {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--tinta-60);
+  margin: 8px 0 12px;
+}
+.nota__txt b { color: var(--tinta); }
+.nota__flujo {
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--tinta-40);
+  text-transform: uppercase;
+}
+
+/* ── UBICACIÓN (04) ── */
+.ubi__nombre {
+  font-family: var(--titulo);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.ubi__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+.ubi__meta {
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .16em;
+  line-height: 1.7;
+  color: var(--tinta-60);
+  text-transform: uppercase;
+}
+.ubi__mapa {
+  flex: 0 0 auto;
+  border: 1px solid var(--tinta);
+  padding: 13px 18px;
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--tinta);
+  text-decoration: none;
+}
+.footer-line {
+  padding: 22px;
+  text-align: center;
+  font-family: var(--texto);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: var(--tinta-40);
+  text-transform: uppercase;
+  border-top: 1px solid var(--linea);
+}
+
+/* ── CTA FLOTANTE ── */
+.cta-flotante {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 16px;
+  z-index: 50;
+  background: var(--tinta);
+  color: #fff;
+  padding: 16px 30px;
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 10px 28px rgba(13, 15, 18, .32);
+  white-space: nowrap;
+}
+.cta-flotante .fuego { color: var(--rojo); }
+
+/* pequeño respiro final para que el CTA flotante no tape el mapa */
+.espacio-cta { height: 88px; }
