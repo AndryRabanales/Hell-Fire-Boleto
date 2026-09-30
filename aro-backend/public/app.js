@@ -403,12 +403,21 @@ function pintarInfoTipos() {
   cargarCupos();
 }
 
-/* ── Rellena los cupos (SIMULACIÓN, como se pidió: 144 / 500 por tipo) ── */
-function cargarCupos() {
+/* ── Rellena los cupos con ventas REALES + extra (del generador vía /api/ventas) ── */
+async function cargarCupos() {
+  let v = null;
+  try {
+    const est = estadoFase();
+    const res = await fetch('/api/ventas?fase=' + encodeURIComponent(est.nombre));
+    const j = await res.json();
+    if (j && j.available) v = j;
+  } catch (e) { /* si no hay datos, usa la simulación de respaldo */ }
+
   document.querySelectorAll('#tiers-info .tipo').forEach((div) => {
     const cat = div.getAttribute('data-cat');
-    const cap = CUPO_SIM[cat] || 500;
-    const sold = VENDIDOS_SIM;
+    let sold, cap;
+    if (v && v[cat]) { sold = v[cat].sold; cap = v[cat].cap; }   // reales + extra, sobre el cupo
+    else { cap = CUPO_SIM[cat] || 500; sold = VENDIDOS_SIM; }
     const left = Math.max(0, cap - sold);
     const pct = cap ? Math.min(100, Math.round((sold / cap) * 100)) : 0;
     const nEl = div.querySelector('.cupo__n');
