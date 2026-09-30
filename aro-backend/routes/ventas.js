@@ -379,14 +379,35 @@ router.get('/sample/:table', auth, async (req, res) => {
 // El generador los sirve con no-cache; aquí los cacheamos (memoria + navegador) para
 // que la página los cargue al instante y no se vea el "salto" al recargar.
 const flyerCache = {};   // v -> { buf, mime, ts }
-const FLYER_TTL = 60000; // 60s en memoria
+const FLYER_TTL = 600000; // 10 min en memoria (evita re-descargar y re-comprimir)
+// sharp es opcional: si está, comprimimos; si no, servimos el original.
+let sharp = null;
+try { sharp = require('sharp'); } catch (e) { sharp = null; }
+
+// Comprime a ancho máx 1080 y JPEG de calidad razonable (~150-300 KB en vez de 6 MB).
+async function comprimirFlyer(buf) {
+    if (!sharp) return { buf, mime: 'image/png' };
+    try {
+        const out = await sharp(buf)
+            .rotate()
+            .resize({ width: 1080, withoutEnlargement: true })
+            .jpeg({ quality: 78, mozjpeg: true })
+            .toBuffer();
+        return { buf: out, mime: 'image/jpeg' };
+    } catch (e) {
+        return { buf, mime: 'image/png' };
+    }
+}
+
 router.get('/flyer', async (req, res) => {
     const v = String(req.query.v || '').replace(/[^a-z0-9]/gi, '');
     if (!v) return res.status(404).end();
     const hit = flyerCache[v];
     const enviar = (buf, mime) => {
         res.set('Content-Type', mime);
-        res.set('Cache-Control', 'public, max-age=300');   // el navegador lo reusa 5 min
+        // Caché fuerte: el navegador (y cualquier CDN) reutiliza el flyer 1 día,
+        // y puede seguir sirviéndolo mientras revalida — clave para bajar el egress.
+        res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
         res.send(buf);
     };
     if (hit && Date.now() - hit.ts < FLYER_TTL) return enviar(hit.buf, hit.mime);
@@ -396,8 +417,8 @@ router.get('/flyer', async (req, res) => {
         const r = await fetch(GEN_BASE + '/flyer?v=' + v, { signal: ctrl.signal });
         clearTimeout(t);
         if (!r.ok) return (hit ? enviar(hit.buf, hit.mime) : res.status(502).end());
-        const mime = r.headers.get('content-type') || 'image/png';
-        const buf = Buffer.from(await r.arrayBuffer());
+        const original = Buffer.from(await r.arrayBuffer());
+        const { buf, mime } = await comprimirFlyer(original);
         flyerCache[v] = { buf, mime, ts: Date.now() };
         enviar(buf, mime);
     } catch (e) {
