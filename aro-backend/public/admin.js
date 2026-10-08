@@ -78,7 +78,7 @@ function apiHeaders() {
 
 /* ── Dashboard ── */
 async function loadDashboard() {
-    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash()]);
+    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash(), loadVendedores()]);
     renderClicks();
 }
 
@@ -334,6 +334,20 @@ function renderClicks() {
                 <td>${c.n}</td>
             </tr>`).join('')
         : '<tr><td colspan="3" class="muted">Aún no hay clics</td></tr>';
+
+    // Por vendedor (de qué link /v/CODIGO vino cada clic)
+    const byVend = {};
+    active.forEach((r) => {
+        const k = r.vendedor || 'general';
+        byVend[k] = (byVend[k] || 0) + r.quantity;
+    });
+    const vBody = document.getElementById('vend-clicks-body');
+    if (vBody) {
+        const vRows = Object.entries(byVend).sort((a, b) => b[1] - a[1]);
+        vBody.innerHTML = vRows.length
+            ? vRows.map(([k, n]) => `<tr><td>${k === 'general' ? '<span class="muted">Link general</span>' : `<strong>${k}</strong>`}</td><td>${n}</td></tr>`).join('')
+            : '<tr><td colspan="2" class="muted">Aún no hay clics</td></tr>';
+    }
 }
 
 /* ── Historial de clics ── */
@@ -348,7 +362,7 @@ function timeAgo(date) {
 function renderReservationsTable() {
     const tbody = document.getElementById('reservations-table-body');
     if (currentReservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="muted">Aún no hay clics registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">Aún no hay clics registrados</td></tr>';
         return;
     }
     tbody.innerHTML = currentReservations.map((r) => {
@@ -361,6 +375,7 @@ function renderReservationsTable() {
                 <td><span class="pill pill--${catDe(r.ticket_type)}">${r.ticket_type}</span></td>
                 <td>${r.fase || '—'}</td>
                 <td>$${r.price_each}</td>
+                <td>${r.vendedor ? `<span class="pill">${r.vendedor}</span>` : '<span class="muted">general</span>'}</td>
                 <td><button class="link-del" title="Eliminar" onclick="deleteReservation(${r.id})">🗑</button></td>
             </tr>`;
     }).join('');
@@ -389,6 +404,99 @@ function showToast(msg) {
     t.textContent = msg;
     c.appendChild(t);
     setTimeout(() => t.remove(), 3500);
+}
+
+/* ── Vendedores · links /v/CODIGO ── */
+let vendedores = [];
+
+function linkVendedor(codigo) {
+    return `${location.origin}/v/${codigo}`;
+}
+
+async function loadVendedores() {
+    try {
+        const r = await fetch(`${API_URL}/api/config`);
+        const c = await r.json();
+        vendedores = Array.isArray(c.vendedores) ? c.vendedores : [];
+        renderVendedores();
+    } catch (e) { /* silencioso */ }
+}
+
+function renderVendedores() {
+    const tbody = document.getElementById('vend-table-body');
+    const badge = document.getElementById('vend-count');
+    if (badge) badge.textContent = `${vendedores.length} vendedor${vendedores.length === 1 ? '' : 'es'}`;
+    if (!tbody) return;
+    if (!vendedores.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted">Aún no hay vendedores</td></tr>';
+        return;
+    }
+    tbody.innerHTML = vendedores.map((v) => {
+        const url = linkVendedor(v.codigo);
+        return `
+            <tr>
+                <td><strong>${v.nombre || '—'}</strong></td>
+                <td><span class="pill">${v.codigo}</span></td>
+                <td>${v.whatsapp}</td>
+                <td style="font-size:11px; word-break:break-all;">${url}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-ghost" onclick="copiarLink('${url}')">Copiar link</button>
+                    <button class="link-del" title="Eliminar" onclick="delVendedor('${v.codigo}')">🗑</button>
+                </td>
+            </tr>`;
+    }).join('');
+}
+
+// Código limpio para la URL: minúsculas, sin acentos ni espacios
+function slugVendedor(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+async function addVendedor() {
+    const nombre = document.getElementById('vend-nombre').value.trim();
+    const codigo = slugVendedor(document.getElementById('vend-codigo').value || nombre);
+    const whatsapp = document.getElementById('vend-wa').value.replace(/\D/g, '');
+    if (!nombre || !codigo) return showToast('Pon nombre y código', 'error');
+    if (whatsapp.length < 10) return showToast('WhatsApp inválido (52 + 10 dígitos)', 'error');
+    if (vendedores.some((v) => v.codigo === codigo)) return showToast('Ese código ya existe', 'error');
+    vendedores.push({ nombre, codigo, whatsapp, activo: true });
+    if (await saveVendedores()) {
+        document.getElementById('vend-nombre').value = '';
+        document.getElementById('vend-codigo').value = '';
+        document.getElementById('vend-wa').value = '';
+        showToast(`Listo: ${linkVendedor(codigo)}`);
+    }
+}
+
+async function delVendedor(codigo) {
+    if (!confirm(`¿Eliminar al vendedor "${codigo}"? Su link dejará de funcionar.`)) return;
+    vendedores = vendedores.filter((v) => v.codigo !== codigo);
+    if (await saveVendedores()) showToast('Vendedor eliminado');
+}
+
+async function saveVendedores() {
+    try {
+        const res = await fetch(`${API_URL}/api/config/vendedores`, {
+            method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ value: vendedores }),
+        });
+        if (res.status === 401 || res.status === 403) { logout(); return false; }
+        if (!res.ok) throw new Error();
+        renderVendedores();
+        return true;
+    } catch (err) {
+        showToast('Error al guardar vendedores', 'error');
+        return false;
+    }
+}
+
+function copiarLink(url) {
+    const ok = () => showToast('Link copiado');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(ok).catch(() => prompt('Copia el link:', url));
+    } else {
+        prompt('Copia el link:', url);
+    }
 }
 
 /* ── Init ── */

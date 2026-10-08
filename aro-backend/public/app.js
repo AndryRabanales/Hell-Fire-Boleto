@@ -115,6 +115,37 @@ const CONFIG = {
 /* ── Estado sincronizado de precios (viene de /api/precios) ── */
 let SYNC = null;
 
+/* ── Vendedor (links /v/CODIGO): redirige los WhatsApp a SU número ── */
+let VENDEDOR = null;
+
+// Lee el código del vendedor de la URL: /v/CODIGO  o  ?v=CODIGO
+function codigoVendedorDeUrl() {
+  const m = location.pathname.match(/^\/v\/([a-z0-9_-]+)/i);
+  if (m) return m[1].toLowerCase();
+  const q = new URLSearchParams(location.search).get('v');
+  return q ? q.toLowerCase().replace(/[^a-z0-9_-]/g, '') : '';
+}
+
+// Si el link trae vendedor, busca su WhatsApp y lo deja como destino de todos los botones
+async function cargarVendedor() {
+  const codigo = codigoVendedorDeUrl();
+  if (!codigo) return;
+  try {
+    const res = await fetch('/api/config/vendedor/' + encodeURIComponent(codigo));
+    if (!res.ok) return;                       // código desconocido: queda el número general
+    const v = await res.json();
+    if (!v || !v.whatsapp) return;
+    VENDEDOR = v;
+    CONFIG.whatsapp = v.whatsapp;
+    // El botón flotante es un <a> fijo: se reescribe su destino
+    const cta = document.querySelector('.cta-flotante');
+    if (cta) {
+      const msg = 'Hola, quiero apartar mi boleto para HELL FIRE';
+      cta.href = 'https://wa.me/' + v.whatsapp + '?text=' + encodeURIComponent(msg);
+    }
+  } catch (e) { /* sin red: queda el número general */ }
+}
+
 /* ── Utilidades ── */
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -137,6 +168,7 @@ function registrarApartado(label, monto, faseNombre) {
         fase: faseNombre,
         price_each: monto,
         quantity: 1,
+        vendedor: VENDEDOR ? VENDEDOR.codigo : '',   // de qué link vino el clic
       }),
     }).catch(() => {});
   } catch (e) { /* sin conexión: no bloquear el WhatsApp */ }
@@ -486,6 +518,7 @@ function contarVisita() {
 
 /* ── Arranque ── */
 document.addEventListener('DOMContentLoaded', () => {
+  cargarVendedor();   // si el link es /v/CODIGO, apunta los WhatsApp a ese vendedor
   contarVisita();
   renderTodo();
   cargarPrecios();

@@ -41,16 +41,20 @@ async function initDB() {
         status VARCHAR(50) NOT NULL DEFAULT 'pending',
         price_each REAL NOT NULL,
         notes TEXT,
+        vendedor VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      DO $$ 
-      BEGIN 
+      DO $$
+      BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reservations' AND column_name='whatsapp') THEN
           ALTER TABLE reservations ADD COLUMN whatsapp VARCHAR(255);
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reservations' AND column_name='fase') THEN
           ALTER TABLE reservations ADD COLUMN fase VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reservations' AND column_name='vendedor') THEN
+          ALTER TABLE reservations ADD COLUMN vendedor VARCHAR(100);
         END IF;
       END $$;
 
@@ -87,6 +91,7 @@ async function initDB() {
         status TEXT NOT NULL DEFAULT 'pending',
         price_each REAL NOT NULL,
         notes TEXT,
+        vendedor TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -100,6 +105,7 @@ async function initDB() {
     // Add columns if they do not exist in SQLite
     try { await sqliteDb.exec("ALTER TABLE reservations ADD COLUMN whatsapp TEXT;"); } catch (e) { }
     try { await sqliteDb.exec("ALTER TABLE reservations ADD COLUMN fase TEXT;"); } catch (e) { }
+    try { await sqliteDb.exec("ALTER TABLE reservations ADD COLUMN vendedor TEXT;"); } catch (e) { }
   }
 
   // Common seed config
@@ -142,7 +148,8 @@ async function initDB() {
     ['ventas_boost', '{"general":0,"vip":0,"ultra":0,"backstage":0}'],
     ['ventas_cupos', '{"general":1000,"vip":600,"ultra":400,"backstage":60}'],
     ['flash', '{"active":false,"uady":0,"externo":0,"vip":0,"ultra":0,"backstage":0,"label":"VENTA FLASH"}'],
-    ['promo', '{"active":false,"img":"","titulo":"Promoción","btn_texto":"Apartar promo","wa_text":""}']
+    ['promo', '{"active":false,"img":"","titulo":"Promoción","btn_texto":"Apartar promo","wa_text":""}'],
+    ['vendedores', '[]']
   ];
 
   for (const [key, value] of initConfig) {

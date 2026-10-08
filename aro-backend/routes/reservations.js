@@ -6,7 +6,9 @@ const router = express.Router();
 
 // POST /api/reservations — public, create a reservation
 router.post('/', async (req, res) => {
-    const { ticket_type, instagram, whatsapp, quantity, fase, price_each } = req.body;
+    const { ticket_type, instagram, whatsapp, quantity, fase, price_each, vendedor } = req.body;
+    // Código del vendedor cuyo link trajo al cliente (/v/CODIGO); vacío si entró por el link general
+    const vend = String(vendedor || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 100) || null;
     console.log(`🎟️ New reservation (click Apartar) for [${ticket_type}]`);
 
     // Solo se requiere el tipo de boleto. El clic en "Apartar" cuenta como
@@ -60,8 +62,8 @@ router.post('/', async (req, res) => {
         }
 
         const result = await execute(
-            `INSERT INTO reservations (ticket_type, instagram, whatsapp, fase, quantity, price_each) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [label, ig, wa, phaseName, qty, price]
+            `INSERT INTO reservations (ticket_type, instagram, whatsapp, fase, quantity, price_each, vendedor) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+            [label, ig, wa, phaseName, qty, price, vend]
         );
 
         const newId = result.id || result.lastID || result[0]?.id;

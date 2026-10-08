@@ -158,6 +158,50 @@
                 <button class="btn-primary" style="margin-top:14px;" onclick="saveFlash()">Guardar flash</button>
             </section>
 
+            <!-- ── VENDEDORES · LINKS ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Vendedores · links</h2>
+                    <span class="panel__badge" id="vend-count">0 vendedores</span>
+                </div>
+                <p class="panel__note" style="margin:0 0 12px;">Cada vendedor tiene <b>su propio link</b>. Quien entre por
+                    él ve la misma página, pero <b>todos los botones de WhatsApp van a SU número</b>. Dáselo para su bio de
+                    IG / TikTok. Cada clic en “Apartar” queda registrado con el vendedor.</p>
+
+                <div class="boost-grid">
+                    <div class="boost-item">
+                        <label class="field-label" style="margin-top:0">Nombre</label>
+                        <input type="text" id="vend-nombre" class="field field--sm" placeholder="Ej: Andry">
+                    </div>
+                    <div class="boost-item">
+                        <label class="field-label" style="margin-top:0">Código (va en el link)</label>
+                        <input type="text" id="vend-codigo" class="field field--sm" placeholder="Ej: andry">
+                    </div>
+                    <div class="boost-item">
+                        <label class="field-label" style="margin-top:0">WhatsApp (52 + 10 dígitos)</label>
+                        <input type="tel" id="vend-wa" class="field field--sm" placeholder="529991234567">
+                    </div>
+                    <button class="btn-primary" onclick="addVendedor()">Agregar vendedor</button>
+                </div>
+
+                <div class="table-wrap" style="margin-top:14px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Código</th>
+                                <th>WhatsApp</th>
+                                <th>Link</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="vend-table-body">
+                            <tr><td colspan="5" class="muted">Aún no hay vendedores</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- ── CLICKS EN APARTAR (nuestra página) ── -->
             <section class="panel">
                 <div class="panel__head">
@@ -192,6 +236,21 @@
                             <tr>
                                 <td colspan="2" class="muted">Cargando…</td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="sub">Apartados por vendedor</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vendedor</th>
+                                <th>Clics</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vend-clicks-body">
+                            <tr><td colspan="2" class="muted">Cargando…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -234,12 +293,13 @@
                                 <th>Nivel</th>
                                 <th>Fase</th>
                                 <th>Precio</th>
+                                <th>Vendedor</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="reservations-table-body">
                             <tr>
-                                <td colspan="6" class="muted">Cargando…</td>
+                                <td colspan="7" class="muted">Cargando…</td>
                             </tr>
                         </tbody>
                     </table>
@@ -254,7 +314,7 @@
     </div>
 
     <div id="toast-container"></div>
-    <script src="admin.js?v=15"></script>
+    <script src="admin.js?v=16"></script>
 </body>
 
 </html>

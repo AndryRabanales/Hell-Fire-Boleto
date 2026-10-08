@@ -51,12 +51,32 @@ router.get('/promo', async (req, res) => {
     }
 });
 
+// GET /api/config/vendedor/:codigo — público: el WhatsApp del vendedor de un link /v/CODIGO.
+// Solo expone lo necesario para redirigir (código, nombre y número), nada más.
+router.get('/vendedor/:codigo', async (req, res) => {
+    const codigo = String(req.params.codigo || '').toLowerCase().trim();
+    if (!codigo) return res.status(404).json({ error: 'Vendedor no encontrado' });
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'vendedores'");
+        const lista = row ? JSON.parse(row.value) : [];
+        const v = (Array.isArray(lista) ? lista : []).find(
+            (x) => x && x.activo !== false && String(x.codigo || '').toLowerCase() === codigo
+        );
+        if (!v || !v.whatsapp) return res.status(404).json({ error: 'Vendedor no encontrado' });
+        res.set('Cache-Control', 'public, max-age=60');
+        res.json({ codigo: v.codigo, nombre: v.nombre || '', whatsapp: String(v.whatsapp).replace(/\D/g, '') });
+    } catch (err) {
+        console.error('Get vendedor error:', err.message);
+        res.status(500).json({ error: 'Error al buscar vendedor' });
+    }
+});
+
 // PUT /api/config/:key — admin only
 router.put('/:key', auth, async (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
-    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash', 'promo'];
+    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash', 'promo', 'vendedores'];
     if (!allowedKeys.includes(key)) {
         return res.status(400).json({ error: 'Clave de configuración inválida' });
     }

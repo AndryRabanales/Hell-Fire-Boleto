@@ -28,6 +28,12 @@ app.use('/api/config', configRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/ventas', ventasRoutes);
 
+// Links por vendedor: /v/CODIGO sirve la misma página; el front lee el código
+// de la URL y redirige los WhatsApp al número de ese vendedor.
+app.get('/v/:codigo', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
