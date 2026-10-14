@@ -127,8 +127,14 @@ router.get('/', auth, async (req, res) => {
 
     const countRawParams = [...params];
 
-    sql += ` ORDER BY created_at DESC LIMIT $${pIdx} OFFSET $${pIdx + 1}`;
-    params.push(parseInt(limit), parseInt(offset));
+    // limit=0 (o "all") = sin límite: trae todo el historial
+    const lim = parseInt(limit);
+    if (String(limit) === 'all' || lim === 0) {
+        sql += ' ORDER BY created_at DESC';
+    } else {
+        sql += ` ORDER BY created_at DESC LIMIT $${pIdx} OFFSET $${pIdx + 1}`;
+        params.push(lim || 100, parseInt(offset) || 0);
+    }
 
     try {
         const reservations = await query(sql, params);

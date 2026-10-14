@@ -277,7 +277,7 @@ async function loadVisits() {
 async function loadReservations() {
     try {
         const search = document.getElementById('filter-search').value;
-        let url = `${API_URL}/api/reservations?limit=500`;
+        let url = `${API_URL}/api/reservations?limit=all`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
 
         const res = await fetch(url, { headers: apiHeaders() });
