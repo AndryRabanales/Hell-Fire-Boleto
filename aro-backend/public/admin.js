@@ -415,9 +415,10 @@ function linkVendedor(codigo) {
 
 async function loadVendedores() {
     try {
-        const r = await fetch(`${API_URL}/api/config`);
-        const c = await r.json();
-        vendedores = Array.isArray(c.vendedores) ? c.vendedores : [];
+        const r = await fetch(`${API_URL}/api/config/vendedores/lista`, { headers: apiHeaders() });
+        if (r.status === 401 || r.status === 403) return logout();
+        const d = await r.json();
+        vendedores = Array.isArray(d.vendedores) ? d.vendedores : [];
         renderVendedores();
     } catch (e) { /* silencioso */ }
 }
@@ -459,36 +460,38 @@ async function addVendedor() {
     const whatsapp = document.getElementById('vend-wa').value.replace(/\D/g, '');
     if (!nombre || !codigo) return showToast('Pon nombre y código', 'error');
     if (whatsapp.length < 10) return showToast('WhatsApp inválido (52 + 10 dígitos)', 'error');
-    if (vendedores.some((v) => v.codigo === codigo)) return showToast('Ese código ya existe', 'error');
-    vendedores.push({ nombre, codigo, whatsapp, activo: true });
-    if (await saveVendedores()) {
+    try {
+        const res = await fetch(`${API_URL}/api/config/vendedores`, {
+            method: 'POST', headers: apiHeaders(), body: JSON.stringify({ nombre, codigo, whatsapp }),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        const d = await res.json();
+        if (Array.isArray(d.vendedores)) { vendedores = d.vendedores; renderVendedores(); }
+        if (!res.ok) return showToast(d.error || 'Error al guardar', 'error');
         document.getElementById('vend-nombre').value = '';
         document.getElementById('vend-codigo').value = '';
         document.getElementById('vend-wa').value = '';
         showToast(`Listo: ${linkVendedor(codigo)}`);
-    }
+    } catch (e) { showToast('Error al guardar vendedor', 'error'); }
 }
 
 async function delVendedor(codigo) {
     if (!confirm(`¿Eliminar al vendedor "${codigo}"? Su link dejará de funcionar.`)) return;
-    vendedores = vendedores.filter((v) => v.codigo !== codigo);
-    if (await saveVendedores()) showToast('Vendedor eliminado');
+    try {
+        const res = await fetch(`${API_URL}/api/config/vendedores/${encodeURIComponent(codigo)}`, {
+            method: 'DELETE', headers: apiHeaders(),
+        });
+        if (res.status === 401 || res.status === 403) return logout();
+        const d = await res.json();
+        if (Array.isArray(d.vendedores)) { vendedores = d.vendedores; renderVendedores(); }
+        showToast(res.ok ? 'Vendedor eliminado' : (d.error || 'Error'), res.ok ? undefined : 'error');
+    } catch (e) { showToast('Error al eliminar vendedor', 'error'); }
 }
 
-async function saveVendedores() {
-    try {
-        const res = await fetch(`${API_URL}/api/config/vendedores`, {
-            method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ value: vendedores }),
-        });
-        if (res.status === 401 || res.status === 403) { logout(); return false; }
-        if (!res.ok) throw new Error();
-        renderVendedores();
-        return true;
-    } catch (err) {
-        showToast('Error al guardar vendedores', 'error');
-        return false;
-    }
-}
+// Al volver a la pestaña, refresca la lista (por si se editó en otra pestaña)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && sessionStorage.getItem('aro_admin_token')) loadVendedores();
+});
 
 function copiarLink(url) {
     const ok = () => showToast('Link copiado');

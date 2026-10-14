@@ -71,12 +71,62 @@ router.get('/vendedor/:codigo', async (req, res) => {
     }
 });
 
+// ── Vendedores: altas/bajas ATÓMICAS sobre la lista guardada ──
+// Antes el admin mandaba la lista completa: dos pestañas se pisaban entre sí.
+// Ahora cada operación lee la lista actual de la base y modifica solo un vendedor.
+async function leerVendedores() {
+    const row = await getRow("SELECT value FROM config WHERE key = 'vendedores'");
+    const l = row ? JSON.parse(row.value) : [];
+    return Array.isArray(l) ? l : [];
+}
+async function guardarVendedores(lista) {
+    await execute(
+        `INSERT INTO config (key, value, updated_at) VALUES ('vendedores', $1, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
+        [JSON.stringify(lista)]
+    );
+}
+
+// GET /api/config/vendedores/lista — admin: lista vigente
+router.get('/vendedores/lista', auth, async (req, res) => {
+    try { res.json({ vendedores: await leerVendedores() }); }
+    catch (e) { res.status(500).json({ error: 'Error al leer vendedores' }); }
+});
+
+// POST /api/config/vendedores — admin: agrega UNO
+router.post('/vendedores', auth, async (req, res) => {
+    const nombre = String(req.body.nombre || '').trim();
+    const codigo = String(req.body.codigo || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    const whatsapp = String(req.body.whatsapp || '').replace(/\D/g, '');
+    if (!nombre || !codigo) return res.status(400).json({ error: 'Nombre y código requeridos' });
+    if (whatsapp.length < 10) return res.status(400).json({ error: 'WhatsApp inválido' });
+    try {
+        const lista = await leerVendedores();
+        if (lista.some((v) => v.codigo === codigo)) {
+            return res.status(409).json({ error: 'Ese código ya existe', vendedores: lista });
+        }
+        lista.push({ nombre, codigo, whatsapp, activo: true });
+        await guardarVendedores(lista);
+        res.json({ success: true, vendedores: lista });
+    } catch (e) { res.status(500).json({ error: 'Error al guardar vendedor' }); }
+});
+
+// DELETE /api/config/vendedores/:codigo — admin: elimina UNO
+router.delete('/vendedores/:codigo', auth, async (req, res) => {
+    const codigo = String(req.params.codigo || '').toLowerCase();
+    try {
+        const lista = (await leerVendedores()).filter((v) => v.codigo !== codigo);
+        await guardarVendedores(lista);
+        res.json({ success: true, vendedores: lista });
+    } catch (e) { res.status(500).json({ error: 'Error al eliminar vendedor' }); }
+});
+
 // PUT /api/config/:key — admin only
 router.put('/:key', auth, async (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
-    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash', 'promo', 'vendedores'];
+    const allowedKeys = ['phases', 'tickets', 'faqs', 'event_info', 'rewards', 'metric_descriptions', 'ventas_boost', 'ventas_cupos', 'ventas_cupos_fase', 'flash', 'promo'];
     if (!allowedKeys.includes(key)) {
         return res.status(400).json({ error: 'Clave de configuración inválida' });
     }
