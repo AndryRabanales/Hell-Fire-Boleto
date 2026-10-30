@@ -8,7 +8,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const auth = require('../middleware/auth');
-const { getRow } = require('../db');
+const { getRow, execute } = require('../db');
 
 const router = express.Router();
 
@@ -102,10 +102,35 @@ const GEN_BASE = VENTAS_API_URL.replace(/\/api\/publico\/precios.*$/, '');
 
 // El generador sirve los flyers con no-cache (se re-descargan cada vez). Los pasamos
 // por NUESTRO backend con caché para que la página cargue el flyer al instante.
+// Versión de los flyers: cambia al pulsar "Guardar/actualizar imagen" en el admin.
+// Va en la URL, así que el navegador descarga la imagen nueva al instante
+// sin perder el caché largo (que es lo que abarata el egress).
+let flyerVer = 0;
+let flyerNormalVer = 0;   // 0 = no hay imagen de precios normales
+async function cargarVersiones() {
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'flyer_ver'");
+        flyerVer = row ? (parseInt(JSON.parse(row.value)) || 0) : 0;
+    } catch (e) { /* deja la última */ }
+    try {
+        const row = await getRow("SELECT value FROM config WHERE key = 'flyer_normal'");
+        const f = row ? JSON.parse(row.value) : null;
+        flyerNormalVer = f && f.img ? (parseInt(f.ver) || 1) : 0;
+    } catch (e) { /* deja la última */ }
+}
+
+async function setConfig(key, value) {
+    await execute(
+        `INSERT INTO config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
+        [key, JSON.stringify(value)]
+    );
+}
+
 function proxyFlyer(path) {
     if (!path) return null;
     const m = /[?&]v=([a-z0-9]+)/i.exec(path);
-    return m ? ('/api/ventas/flyer?v=' + m[1]) : null;
+    return m ? ('/api/ventas/flyer?v=' + m[1] + '&ver=' + flyerVer) : null;
 }
 
 // Promo vigente del generador (una sola). EXIGE imagen: sin flyer no se muestra.
@@ -187,15 +212,17 @@ router.get('/precios', async (req, res) => {
     const fresh = req.query.fresh === '1';
     // Una sola lectura del generador para flash + promo + flyer flash (cambian al instante)
     const pub = await getGeneradorPublico();
+    await cargarVersiones();
+    const normalImagen = flyerNormalVer ? ('/api/ventas/flyer-normal?ver=' + flyerNormalVer) : null;
     const flash = await resolveFlash(pub);
     const promo = buildPromo(pub);
     const flashImagen = buildFlashImg(pub);
     if (!fresh && preciosCache.data && now - preciosCache.ts < PRECIOS_TTL) {
-        return res.json({ ...aplicarPublico(preciosCache.data, pub), flash, promo, flashImagen });
+        return res.json({ ...aplicarPublico(preciosCache.data, pub), flash, promo, flashImagen, normalImagen });
     }
 
     const pool = getVentasPool();
-    if (!pool) return res.json({ available: false, flash, promo, flashImagen });
+    if (!pool) return res.json({ available: false, flash, promo, flashImagen, normalImagen });
 
     try {
         const types = await pool.query('SELECT id, name FROM ticket_types WHERE active = 1');
@@ -264,10 +291,10 @@ router.get('/precios', async (req, res) => {
         } catch (e) { data.generadorFlash = false; }
 
         preciosCache = { data, ts: now };
-        res.json({ ...aplicarPublico(data, pub), flash, promo, flashImagen });
+        res.json({ ...aplicarPublico(data, pub), flash, promo, flashImagen, normalImagen });
     } catch (e) {
         console.error('Precios error:', e.message);
-        res.json({ available: false, flash, promo, flashImagen, error: e.message });
+        res.json({ available: false, flash, promo, flashImagen, normalImagen, error: e.message });
     }
 });
 
@@ -405,6 +432,51 @@ router.get('/sample/:table', auth, async (req, res) => {
 // que la página los cargue al instante y no se vea el "salto" al recargar.
 const flyerCache = {};   // v -> { buf, mime, ts }
 const FLYER_TTL = 600000; // 10 min en memoria (evita re-descargar y re-comprimir)
+// POST /api/ventas/flyer-refresh — admin: tira el caché y versiona los flyers del
+// generador para que la página muestre de inmediato la imagen nueva.
+router.post('/flyer-refresh', auth, async (req, res) => {
+    try {
+        Object.keys(flyerCache).forEach((k) => delete flyerCache[k]);
+        flyerVer = Date.now();
+        await setConfig('flyer_ver', flyerVer);
+        res.json({ success: true, ver: flyerVer });
+    } catch (e) { res.status(500).json({ error: 'No se pudo actualizar' }); }
+});
+
+// ── Imagen de PRECIOS NORMALES (se muestra cuando la venta flash está apagada) ──
+// PUT /api/ventas/flyer-normal — admin: { img: dataURL } (vacío = quitarla)
+router.put('/flyer-normal', auth, async (req, res) => {
+    const img = String((req.body && req.body.img) || '');
+    if (img && !/^data:image\/(jpeg|png|webp);base64,/.test(img)) {
+        return res.status(400).json({ error: 'Imagen inválida' });
+    }
+    try {
+        const ver = img ? Date.now() : 0;
+        await setConfig('flyer_normal', { img, ver });
+        normalCache = { ver: 0, buf: null, mime: null };
+        flyerNormalVer = ver;
+        res.json({ success: true, ver });
+    } catch (e) { res.status(500).json({ error: 'No se pudo guardar' }); }
+});
+
+let normalCache = { ver: 0, buf: null, mime: null };
+// GET /api/ventas/flyer-normal?ver=X — público. La URL lleva la versión,
+// así que se puede cachear "para siempre" sin riesgo de imagen vieja.
+router.get('/flyer-normal', async (req, res) => {
+    try {
+        if (!normalCache.buf) {
+            const row = await getRow("SELECT value FROM config WHERE key = 'flyer_normal'");
+            const f = row ? JSON.parse(row.value) : null;
+            const m = f && f.img ? /^data:(image\/[a-z]+);base64,(.+)$/.exec(f.img) : null;
+            if (!m) return res.status(404).end();
+            normalCache = { ver: f.ver, mime: m[1], buf: Buffer.from(m[2], 'base64') };
+        }
+        res.set('Content-Type', normalCache.mime);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.send(normalCache.buf);
+    } catch (e) { res.status(500).end(); }
+});
+
 // sharp es opcional: si está, comprimimos; si no, servimos el original.
 let sharp = null;
 try { sharp = require('sharp'); } catch (e) { sharp = null; }

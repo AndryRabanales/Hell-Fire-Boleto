@@ -156,6 +156,30 @@
                         <input type="number" min="0" id="flash-backstage" class="field field--sm" value="0"></div>
                 </div>
                 <button class="btn-primary" style="margin-top:14px;" onclick="saveFlash()">Guardar flash</button>
+
+                <h3 class="sub">Imagen de la venta flash / promo</h3>
+                <p class="panel__note" style="margin:0 0 10px;">¿Cambiaste el flyer en tu generador? Pulsa este botón y la
+                    página mostrará la imagen nueva al instante (en ~20 s en celulares que ya la tienen abierta).</p>
+                <button class="btn-primary" onclick="refrescarFlyers()">Guardar y actualizar imagen en la página</button>
+            </section>
+
+            <!-- ── IMAGEN DE PRECIOS NORMALES ── -->
+            <section class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Imagen de precios normales</h2>
+                    <span class="panel__badge" id="normal-estado">—</span>
+                </div>
+                <p class="panel__note" style="margin:0 0 12px;">Se muestra en el <b>mismo espacio que el flyer de venta
+                    flash</b>, cuando la venta flash está <b>apagada</b>. Formato 4:5 (ideal 1080×1350). Se comprime sola.</p>
+                <input type="file" id="normal-file" accept="image/*" class="field field--sm" style="max-width:340px;">
+                <div id="normal-preview-wrap" style="display:none; margin-top:12px;">
+                    <img id="normal-preview" alt="Vista previa"
+                        style="width:180px; aspect-ratio:4/5; object-fit:cover; border:1.5px solid var(--linea);">
+                </div>
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn-primary" onclick="saveNormal()">Guardar imagen</button>
+                    <button class="btn-ghost btn-ghost--danger" onclick="quitarNormal()">Quitar imagen</button>
+                </div>
             </section>
 
             <!-- ── VENDEDORES · LINKS ── -->
@@ -314,7 +338,7 @@
     </div>
 
     <div id="toast-container"></div>
-    <script src="admin.js?v=18"></script>
+    <script src="admin.js?v=19"></script>
 </body>
 
 </html>

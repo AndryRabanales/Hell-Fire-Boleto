@@ -78,7 +78,7 @@ function apiHeaders() {
 
 /* ── Dashboard ── */
 async function loadDashboard() {
-    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash(), loadVendedores()]);
+    await Promise.all([loadVentas(), loadVisits(), loadReservations(), loadBoostInputs(), loadFlash(), loadVendedores(), loadNormal()]);
     renderClicks();
 }
 
@@ -405,6 +405,105 @@ function showToast(msg) {
     c.appendChild(t);
     setTimeout(() => t.remove(), 3500);
 }
+
+/* ── Flyers: refrescar imagen de flash/promo ── */
+async function refrescarFlyers() {
+    try {
+        const res = await fetch(`${API_URL}/api/ventas/flyer-refresh`, { method: 'POST', headers: apiHeaders() });
+        if (res.status === 401 || res.status === 403) return logout();
+        if (!res.ok) throw new Error();
+        showToast('Imagen actualizada en la página');
+    } catch (e) { showToast('No se pudo actualizar la imagen', 'error'); }
+}
+
+/* ── Imagen de precios normales ── */
+let normalImg = '';   // dataURL nuevo pendiente de guardar
+
+// Redimensiona a máx 1080 px de ancho y comprime a JPEG (ligero = barato en Railway)
+function comprimirImagen(file) {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onerror = reject;
+        fr.onload = () => {
+            const im = new Image();
+            im.onerror = reject;
+            im.onload = () => {
+                const escala = Math.min(1, 1080 / im.width);
+                const cv = document.createElement('canvas');
+                cv.width = Math.round(im.width * escala);
+                cv.height = Math.round(im.height * escala);
+                cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+                resolve(cv.toDataURL('image/jpeg', 0.8));
+            };
+            im.src = fr.result;
+        };
+        fr.readAsDataURL(file);
+    });
+}
+
+function pintarPreviewNormal(src) {
+    const wrap = document.getElementById('normal-preview-wrap');
+    const img = document.getElementById('normal-preview');
+    if (!wrap || !img) return;
+    if (src) { img.src = src; wrap.style.display = 'block'; } else { wrap.style.display = 'none'; }
+}
+
+async function loadNormal() {
+    try {
+        const r = await fetch(`${API_URL}/api/ventas/precios`);
+        const d = await r.json();
+        const badge = document.getElementById('normal-estado');
+        if (badge) {
+            badge.textContent = d.normalImagen ? 'Imagen cargada' : 'Sin imagen';
+            badge.classList.toggle('is-off', !d.normalImagen);
+        }
+        if (!normalImg) pintarPreviewNormal(d.normalImagen || '');
+    } catch (e) { /* silencioso */ }
+}
+
+async function enviarNormal(img) {
+    const res = await fetch(`${API_URL}/api/ventas/flyer-normal`, {
+        method: 'PUT', headers: apiHeaders(), body: JSON.stringify({ img }),
+    });
+    if (res.status === 401 || res.status === 403) { logout(); return false; }
+    if (!res.ok) throw new Error();
+    return true;
+}
+
+async function saveNormal() {
+    if (!normalImg) return showToast('Primero elige una imagen', 'error');
+    try {
+        if (!(await enviarNormal(normalImg))) return;
+        normalImg = '';
+        document.getElementById('normal-file').value = '';
+        showToast('Imagen guardada · ya se ve en la página');
+        loadNormal();
+    } catch (e) { showToast('Error al guardar la imagen', 'error'); }
+}
+
+async function quitarNormal() {
+    if (!confirm('¿Quitar la imagen de precios normales?')) return;
+    try {
+        if (!(await enviarNormal(''))) return;
+        normalImg = '';
+        pintarPreviewNormal('');
+        showToast('Imagen quitada');
+        loadNormal();
+    } catch (e) { showToast('Error al quitar la imagen', 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const f = document.getElementById('normal-file');
+    if (f) f.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            normalImg = await comprimirImagen(file);
+            pintarPreviewNormal(normalImg);
+            showToast('Lista · pulsa "Guardar imagen"');
+        } catch (err) { showToast('No se pudo leer la imagen', 'error'); }
+    });
+});
 
 /* ── Vendedores · links /v/CODIGO ── */
 let vendedores = [];

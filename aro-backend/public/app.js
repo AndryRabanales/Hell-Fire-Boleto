@@ -380,7 +380,14 @@ function pintarFlashSeccion() {
     if (titulo) titulo.textContent = 'Boletos';
     if (heading) heading.textContent = 'Aparta tu boleto';
     if (nota) nota.style.display = 'none';
-    if (frame) frame.style.display = 'none';
+    // Sin flash: el mismo marco muestra la imagen de PRECIOS NORMALES (si se subió)
+    const normal = SYNC && SYNC.normalImagen;
+    if (frame && normal) {
+      mostrarImg(document.getElementById('flash-cartel-img'), normal);
+      frame.style.display = '';
+    } else if (frame) {
+      frame.style.display = 'none';
+    }
   }
 }
 
