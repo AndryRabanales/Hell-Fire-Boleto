@@ -480,3 +480,18 @@ body {
 
 /* pequeño respiro final para que el CTA flotante no tape el mapa */
 .espacio-cta { height: 88px; }
+
+/* Tipo cerrado/agotado en el generador */
+.btn-tier--cerrado { opacity: .42; filter: grayscale(.7); cursor: not-allowed; }
+.tipo__agotado {
+  display: inline-block;
+  margin: 8px 0 0 14px;
+  padding: 3px 9px;
+  background: var(--tinta);
+  color: #fff;
+  font-family: var(--texto);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}

@@ -138,7 +138,7 @@ async function resolveFlash(pub) {
         const out = { active: true, uady: 0, externo: 0, vip: 0, ultra: 0, backstage: 0, label: admin.label || 'VENTA FLASH', fuente: 'generador' };
         pub.tipos.forEach((tp) => {
             const k = mapKeyTipo(tp.nombre);
-            if (tp.en_flash && tp.precio != null) out[k] = Math.round(Number(tp.precio));
+            if (k && tp.en_flash && tp.precio != null) out[k] = Math.round(Number(tp.precio));
         });
         return out;
     }
@@ -152,7 +152,29 @@ function mapKeyTipo(n) {
     if (n.includes('backstage')) return 'backstage';
     if (n.includes('vip')) return 'vip';
     if (n.includes('uady')) return 'uady';
-    return 'externo';
+    if (n.includes('extern')) return 'externo';
+    return null;   // tipo desconocido: NO se mezcla con otro (antes caía en "externo")
+}
+
+// El endpoint público del generador es la fuente de verdad: solo trae tipos
+// ACTIVOS, con su precio de lista y si están cerrados/agotados.
+function aplicarPublico(data, pub) {
+    if (!pub || !Array.isArray(pub.tipos)) return { ...data, estadoTipos: {} };
+    const precios = {};
+    const estadoTipos = {};
+    pub.tipos.forEach((t) => {
+        const k = mapKeyTipo(t.nombre);
+        if (!k) return;
+        const lista = t.precio_lista != null ? t.precio_lista : t.precio;
+        if (lista != null) precios[k] = Math.round(Number(lista));
+        estadoTipos[k] = { cerrado: !!t.cerrado, agotado: !!t.agotado };
+    });
+    return {
+        ...data,
+        precios: Object.keys(precios).length ? precios : data.precios,
+        estadoTipos,
+        ventasCerradas: !!pub.ventas_cerradas,
+    };
 }
 
 const EVENTO_CIERRE = '2026-10-31T20:00:00-06:00';
@@ -169,7 +191,7 @@ router.get('/precios', async (req, res) => {
     const promo = buildPromo(pub);
     const flashImagen = buildFlashImg(pub);
     if (!fresh && preciosCache.data && now - preciosCache.ts < PRECIOS_TTL) {
-        return res.json({ ...preciosCache.data, flash, promo, flashImagen });
+        return res.json({ ...aplicarPublico(preciosCache.data, pub), flash, promo, flashImagen });
     }
 
     const pool = getVentasPool();
@@ -197,8 +219,9 @@ router.get('/precios', async (req, res) => {
                 .filter((r) => r.starts_on <= today)
                 .sort((a, b) => (a.starts_on < b.starts_on ? 1 : a.starts_on > b.starts_on ? -1 : b.id - a.id));
             const active = past[0];
-            if (active) {
-                precios[mapKeyTipo(nameOf[tid])] = Math.round(active.price_cents / 100);
+            const key = mapKeyTipo(nameOf[tid]);   // tipos inactivos no tienen nombre -> se ignoran
+            if (active && key) {
+                precios[key] = Math.round(active.price_cents / 100);
                 if (!faseActual) faseActual = active.name;
             }
         });
@@ -214,9 +237,11 @@ router.get('/precios', async (req, res) => {
         // Línea de tiempo completa (todas las fases, precios por tipo)
         const faseMap = {};
         phases.rows.forEach((r) => {
+            const key = mapKeyTipo(nameOf[r.type_id]);
+            if (!key) return;
             const fn = r.name;
             faseMap[fn] = faseMap[fn] || { name: fn, starts_on: r.starts_on };
-            faseMap[fn][mapKeyTipo(nameOf[r.type_id])] = Math.round(r.price_cents / 100);
+            faseMap[fn][key] = Math.round(r.price_cents / 100);
         });
         const numFase = (s) => parseInt(String(s).replace(/\D/g, '')) || 0;
         const fases = Object.values(faseMap).sort((a, b) =>
@@ -239,7 +264,7 @@ router.get('/precios', async (req, res) => {
         } catch (e) { data.generadorFlash = false; }
 
         preciosCache = { data, ts: now };
-        res.json({ ...data, flash, promo, flashImagen });
+        res.json({ ...aplicarPublico(data, pub), flash, promo, flashImagen });
     } catch (e) {
         console.error('Precios error:', e.message);
         res.json({ available: false, flash, promo, flashImagen, error: e.message });

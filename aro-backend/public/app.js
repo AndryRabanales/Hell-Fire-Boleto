@@ -385,6 +385,14 @@ function pintarFlashSeccion() {
 }
 
 /* ── Grid de botones (Apartar por tipo) ── */
+// ¿El tipo está cerrado/agotado en el generador? (General = Uady y Externo cerrados)
+function tierCerrado(tk) {
+  const e = (SYNC && SYNC.estadoTipos) || {};
+  const keys = tk.id === 'general' ? ['uady', 'externo'] : [tk.priceKey];
+  const presentes = keys.filter((k) => e[k]);
+  return presentes.length > 0 && presentes.every((k) => e[k].cerrado || e[k].agotado);
+}
+
 function pintarBotones() {
   const cont = document.getElementById('tiers-grid');
   if (!cont) return;
@@ -394,16 +402,23 @@ function pintarBotones() {
 
   tiersVisibles(est).forEach((tk) => {
     const pr = precioTier(tk, est.precios, est.flash);
+    const cerrado = tierCerrado(tk);
     const b = document.createElement('button');
-    b.className = 'btn-tier btn-tier--' + tk.id;
+    b.className = 'btn-tier btn-tier--' + tk.id + (cerrado ? ' btn-tier--cerrado' : '');
     b.innerHTML =
       '<span class="btn-tier__nombre">' + tk.label + '</span>' +
-      (flashOn ? '' : '<span class="btn-tier__precio">' + textoPrecio(tk, est) + '</span>') +
-      '<span class="btn-tier__cta">Apartar <span>&rarr;</span></span>';
-    b.addEventListener('click', () => {
-      registrarApartado(tk.label, pr.monto, est.nombre);
-      abrirWhatsApp(tk.label, pr.wa);
-    });
+      (flashOn || cerrado ? '' : '<span class="btn-tier__precio">' + textoPrecio(tk, est) + '</span>') +
+      (cerrado
+        ? '<span class="btn-tier__cta">Agotado</span>'
+        : '<span class="btn-tier__cta">Apartar <span>&rarr;</span></span>');
+    if (cerrado) {
+      b.disabled = true;
+    } else {
+      b.addEventListener('click', () => {
+        registrarApartado(tk.label, pr.monto, est.nombre);
+        abrirWhatsApp(tk.label, pr.wa);
+      });
+    }
     cont.appendChild(b);
   });
 }
@@ -422,6 +437,7 @@ function pintarInfoTipos() {
     div.setAttribute('data-cat', catDeTier(tk.id));
     div.innerHTML =
       '<div class="tipo__nombre">' + tk.label + '</div>' +
+      (tierCerrado(tk) ? '<div class="tipo__agotado">Agotado</div>' : '') +
       '<div class="tipo__desc">' + (DESCRIP[tk.id] || '') + '</div>' +
       (flashOn ? '' : '<div class="tipo__precio">' + textoPrecio(tk, est) + '</div>') +
       '<div class="cupo">' +
